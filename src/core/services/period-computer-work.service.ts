@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 
 import { PeriodComputerWork } from '../entities/period-computer-work.entity';
 import { IPeriodComputerWorkOptions } from '../types/period-computer-work.options';
-import { CreatePeriodComputerWorkDto, UpdateStartPeriodComputerWorkDto, ReadPeriodComputerWorkDto } from '../dto/period-computer-work.dto';
+import { CreatePeriodComputerWorkDto, UpdatePeriodComputerWorkDto, ReadPeriodComputerWorkDto } from '../dto/period-computer-work.dto';
 import { ComputerService } from './computer.service';
 
 @Injectable()
@@ -31,7 +31,7 @@ export class PeriodComputerWorkService  {
 		const queryBuilder = this.periodComputerWorkRepository.createQueryBuilder();
 
 		queryBuilder
-			.select(['periodComputerWork.id', 'periodComputerWork.dateStartStart', 'periodComputerWork.dateStartEnd', 'periodComputerWork.computerId', 'periodComputerWork.operatingSystem'])
+			.select(['periodComputerWork.id', 'periodComputerWork.date', 'periodComputerWork.dateEnd', 'periodComputerWork.computerId', 'periodComputerWork.operatingSystem', 'periodComputerWork.loginId'])
 			.from(PeriodComputerWork, 'periodComputerWork')
             .leftJoin('periodComputerWork.computer', 'computer')
             .addSelect([
@@ -56,6 +56,11 @@ export class PeriodComputerWorkService  {
 			if (options.filter.operatingSystem) {
 				queryBuilder.andWhere('periodComputerWork.operatingSystem = :operatingSystem', {
 					operatingSystem: options.filter.operatingSystem,
+				});
+			}
+			if (options.filter.loginId) {
+				queryBuilder.andWhere('periodComputerWork.loginId = :loginId', {
+					loginId: options.filter.loginId,
 				});
 			}
 			if(options.filter.computers) {
@@ -94,14 +99,14 @@ export class PeriodComputerWorkService  {
         return this.periodComputerWorkRepository.findOneBy({ ...readPeriodComputerWorkDto });
     }
 
-	public async updateStart(
+	public async update(
 		id: number,
-		updateStartPeriodComputerWorkDto: UpdateStartPeriodComputerWorkDto,
+		updatePeriodComputerWorkDto: UpdatePeriodComputerWorkDto,
 	): Promise<PeriodComputerWork> {
-		const { computerId, ...properties } = updateStartPeriodComputerWorkDto;
+		const { computerId, ...properties } = updatePeriodComputerWorkDto;
 		const computer = await this.computerService.readById(computerId);
 		const periodComputerWork = { computer, ...properties };
-		//await this.periodComputerWorkRepository.updateStart(id, periodComputerWork);
+		//await this.periodComputerWorkRepository.update(id, periodComputerWork);
 		return (await this.periodComputerWorkRepository.update(id, periodComputerWork)).raw;
 	}
 

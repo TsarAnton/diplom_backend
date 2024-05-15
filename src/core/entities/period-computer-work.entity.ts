@@ -16,6 +16,9 @@ export class PeriodComputerWork {
     @Column()
 	operatingSystem: string;
 
+	@Column()
+	loginId: string;
+
 	@ManyToOne(
 		() => Computer,
 		computer => computer.logsWindows,

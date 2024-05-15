@@ -30,7 +30,13 @@ export class CreateWeekComputerWorkDto {
 
     @IsNotEmpty()
 	@IsDecimal()
-    operatingSystem: string;
+    @Transform(hours => Number(hours))
+    hours: number;
+
+	@IsNotEmpty()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem: string;
 }
 
 export class UpdateWeekComputerWorkDto {
@@ -46,7 +52,13 @@ export class UpdateWeekComputerWorkDto {
 
     @IsOptional()
 	@IsDecimal()
-    operatingSystem?: string;
+    @Transform(hours => Number(hours))
+    hours?: number;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem?: string;
 }
 
 export class ReadWeekComputerWorkDto {
@@ -67,7 +79,13 @@ export class ReadWeekComputerWorkDto {
 
     @IsOptional()
 	@IsDecimal()
-    operatingSystem?: string;
+    @Transform(hours => Number(hours))
+    hours?: number;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem?: string;
 }
 
 export class ReadAllWeekComputerWorkDto {
@@ -98,5 +116,11 @@ export class ReadAllWeekComputerWorkDto {
 
     @IsOptional()
 	@IsDecimal()
-    operatingSystem?: string;
+    @Transform(hours => Number(hours))
+    hours?: number;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem?: string;
 }

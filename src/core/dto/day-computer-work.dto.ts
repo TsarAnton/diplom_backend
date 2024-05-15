@@ -30,7 +30,13 @@ export class CreateDayComputerWorkDto {
 
     @IsNotEmpty()
 	@IsDecimal()
-    operatingSystem: string;
+    @Transform(hours => Number(hours))
+    hours: number;
+
+	@IsNotEmpty()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem: string;
 }
 
 export class UpdateDayComputerWorkDto {
@@ -46,7 +52,13 @@ export class UpdateDayComputerWorkDto {
 
     @IsOptional()
 	@IsDecimal()
-    operatingSystem?: string;
+    @Transform(hours => Number(hours))
+    hours?: number;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem?: string;
 }
 
 export class ReadDayComputerWorkDto {
@@ -67,7 +79,13 @@ export class ReadDayComputerWorkDto {
 
     @IsOptional()
 	@IsDecimal()
-    operatingSystem?: string;
+    @Transform(hours => Number(hours))
+    hours?: number;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem?: string;
 }
 
 export class ReadAllDayComputerWorkDto {
@@ -98,5 +116,11 @@ export class ReadAllDayComputerWorkDto {
 
     @IsOptional()
 	@IsDecimal()
-    operatingSystem?: string;
+    @Transform(hours => Number(hours))
+    hours?: number;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem?: string;
 }

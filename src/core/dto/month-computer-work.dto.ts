@@ -30,7 +30,13 @@ export class CreateMonthComputerWorkDto {
 
     @IsNotEmpty()
 	@IsDecimal()
-    operatingSystem: string;
+    @Transform(hours => Number(hours))
+    hours: number;
+
+	@IsNotEmpty()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem: string;
 }
 
 export class UpdateMonthComputerWorkDto {
@@ -46,7 +52,13 @@ export class UpdateMonthComputerWorkDto {
 
     @IsOptional()
 	@IsDecimal()
-    operatingSystem?: string;
+    @Transform(hours => Number(hours))
+    hours?: number;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem?: string;
 }
 
 export class ReadMonthComputerWorkDto {
@@ -67,7 +79,13 @@ export class ReadMonthComputerWorkDto {
 
     @IsOptional()
 	@IsDecimal()
-    operatingSystem?: string;
+    @Transform(hours => Number(hours))
+    hours?: number;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem?: string;
 }
 
 export class ReadAllMonthComputerWorkDto {
@@ -97,5 +115,11 @@ export class ReadAllMonthComputerWorkDto {
 
     @IsOptional()
 	@IsDecimal()
-    operatingSystem?: string;
+    @Transform(hours => Number(hours))
+    hours?: number;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem?: string;
 }

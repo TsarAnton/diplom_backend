@@ -30,7 +30,13 @@ export class CreateYearComputerWorkDto {
 
     @IsNotEmpty()
 	@IsDecimal()
-    operatingSystem: string;
+    @Transform(hours => Number(hours))
+    hours: number;
+
+	@IsNotEmpty()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem: string;
 }
 
 export class UpdateYearComputerWorkDto {
@@ -46,7 +52,13 @@ export class UpdateYearComputerWorkDto {
 
     @IsOptional()
 	@IsDecimal()
-    operatingSystem?: string;
+    @Transform(hours => Number(hours))
+    hours?: number;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem?: string;
 }
 
 export class ReadYearComputerWorkDto {
@@ -67,7 +79,13 @@ export class ReadYearComputerWorkDto {
 
     @IsOptional()
 	@IsDecimal()
-    operatingSystem?: string;
+    @Transform(hours => Number(hours))
+    hours?: number;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem?: string;
 }
 
 export class ReadAllYearComputerWorkDto {
@@ -98,5 +116,11 @@ export class ReadAllYearComputerWorkDto {
 
     @IsOptional()
 	@IsDecimal()
-    operatingSystem?: string;
+    @Transform(hours => Number(hours))
+    hours?: number;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(50)
+	operatingSystem?: string;
 }

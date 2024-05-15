@@ -23,19 +23,23 @@ export class CreatePeriodComputerWorkDto {
 	@Transform(computerId => Number(computerId))
 	computerId: number;
 
-    @IsNotEmpty()
-	@MaxLength(50)
+    @IsOptional()
 	@IsDate()
-    dateStart: Date;
+    dateStart?: Date;
+
+    @IsOptional()
+	@IsDate()
+    dateEnd?: Date;
 
     @IsNotEmpty()
-	@MaxLength(50)
-	@IsDate()
-    dateEnd: Date;
-
-    @IsNotEmpty()
-	@IsDecimal()
+	@IsString()
+    @MaxLength(50)
     operatingSystem: string;
+
+    @IsNotEmpty()
+	@IsString()
+    @MaxLength(15)
+    loginId: string;
 }
 
 export class UpdatePeriodComputerWorkDto {
@@ -55,8 +59,14 @@ export class UpdatePeriodComputerWorkDto {
     dateEnd?: Date;
 
     @IsOptional()
-	@IsDecimal()
+	@IsString()
+    @MaxLength(50)
     operatingSystem?: string;
+
+    @IsOptional()
+	@IsString()
+    @MaxLength(15)
+    loginId?: string;
 }
 
 export class ReadPeriodComputerWorkDto {
@@ -81,8 +91,14 @@ export class ReadPeriodComputerWorkDto {
     dateEnd?: Date;
 
     @IsOptional()
-	@IsDecimal()
+	@IsString()
+    @MaxLength(50)
     operatingSystem?: string;
+
+    @IsOptional()
+	@IsString()
+    @MaxLength(15)
+    loginId?: string;
 }
 
 export class ReadAllPeriodComputerWorkDto {
@@ -117,6 +133,12 @@ export class ReadAllPeriodComputerWorkDto {
     dateEnd?: Date;
 
     @IsOptional()
-	@IsDecimal()
+	@IsString()
+    @MaxLength(50)
     operatingSystem?: string;
+
+    @IsOptional()
+	@IsString()
+    @MaxLength(15)
+    loginId?: string;
 }

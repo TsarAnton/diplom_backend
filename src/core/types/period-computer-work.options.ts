@@ -7,6 +7,7 @@ export interface IPeriodComputerWorkOptions {
         dateEnd?: Date;
         computers?: number[];
         operatingSystem?: string;
+        loginId?: string;
     }
     sorting?: ISortingOptions;
     pagination?: IPaginationOptions;

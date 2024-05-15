@@ -111,10 +111,10 @@ export class ComputerController {
             yearComputerWork = await this.yearComputerWorkService.create(yearComputerWorkOptions);
         }
     } else {
-        this.dayComputerWorkService.update(dayComputerWork.id, { hours: hours });
-        this.weekComputerWorkService.update(weekComputerWork.id, { hours: hours });
-        this.monthComputerWorkService.update(monthComputerWork.id, { hours: hours });
-        this.yearComputerWorkService.update(yearComputerWork.id, { hours: hours });
+        this.dayComputerWorkService.update(dayComputerWork.id, { hours: dayComputerWork.hours + hours });
+        this.weekComputerWorkService.update(weekComputerWork.id, { hours: weekComputerWork.hours + hours });
+        this.monthComputerWorkService.update(monthComputerWork.id, { hours: monthComputerWork.hours + hours });
+        this.yearComputerWorkService.update(yearComputerWork.id, { hours: yearComputerWork.hours + hours });
     }
   }
 }

@@ -5,7 +5,8 @@ export interface IWeekComputerWorkOptions {
     filter?: {
         date?: Date;
         hours?: number;
-        computerIds?: number[];
+        computers?: number[];
+        operatingSystem?: string;
     }
     sorting?: ISortingOptions;
     pagination?: IPaginationOptions;

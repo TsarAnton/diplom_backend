@@ -2,18 +2,18 @@ import { Column, DeleteDateColumn, Entity, PrimaryGeneratedColumn, ManyToOne, Jo
 
 import { Computer } from './computer.entity';
 
-@Entity({ name: 'week_computer_work', engine: 'InnoDB' })
-export class WeekComputerWork {
+@Entity({ name: 'period_computer_work', engine: 'InnoDB' })
+export class PeriodComputerWork {
 	@PrimaryGeneratedColumn()
 	id: number;
 
 	@Column()
-	date: Date;
+	dateStart: Date;
 
     @Column()
-	hours: number;
+	dateEnd: Date;
 
-	@Column()
+    @Column()
 	operatingSystem: string;
 
 	@ManyToOne(

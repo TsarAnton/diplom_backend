@@ -18,8 +18,10 @@ export class WeekComputerWorkService  {
 	public async create(
         createWeekComputerWorkDto: CreateWeekComputerWorkDto,
     ): Promise<WeekComputerWork> {
-		const weekComputerWorkEntity = await this.createWeekComputerWorkEntityFromCreateDto(createWeekComputerWorkDto);
-        return this.weekComputerWorkRepository.save(weekComputerWorkEntity);
+		const { computerId, ...properties } = createWeekComputerWorkDto;
+		const computer = await this.computerService.readById(computerId);
+		const weekComputerWork = { computer, ...properties };
+        return this.weekComputerWorkRepository.save(weekComputerWork);
 	}
 
 	public async readAll(
@@ -29,7 +31,7 @@ export class WeekComputerWorkService  {
 		const queryBuilder = this.weekComputerWorkRepository.createQueryBuilder();
 
 		queryBuilder
-			.select(['weekComputerWork.id', 'weekComputerWork.date', 'weekComputerWork.computerId', 'weekComputerWork.hours'])
+			.select(['weekComputerWork.id', 'weekComputerWork.date', 'weekComputerWork.computerId', 'weekComputerWork.hours', 'weekComputerWork.operatingSystem'])
 			.from(WeekComputerWork, 'weekComputerWork')
             .leftJoin('weekComputerWork.computer', 'computer')
             .addSelect([
@@ -51,16 +53,21 @@ export class WeekComputerWorkService  {
 					hours: options.filter.hours,
 				});
 			}
-			if(options.filter.computerIds) {
-				if(typeof options.filter.computerIds === "string") {
-					queryBuilder.andWhere('computer.id = :computerIds', {
-						computerIds: Number(options.filter.computerIds),
+			if (options.filter.operatingSystem) {
+				queryBuilder.andWhere('weekComputerWork.operatingSystem = :operatingSystem', {
+					operatingSystem: options.filter.operatingSystem,
+				});
+			}
+			if(options.filter.computers) {
+				// if(typeof options.filter.computers === "string") {
+				// 	queryBuilder.andWhere('computer.id = :computers', {
+				// 		computers: Number(options.filter.computers),
+				// 	});
+				// } else {
+					queryBuilder.andWhere('computer.id IN (:...computers)', {
+						computers: options.filter.computers, //options.filter.computers.map(id => Number(id)),
 					});
-				} else {
-					queryBuilder.andWhere('computer.id IN (:...computerIds)', {
-						computerIds: options.filter.computerIds.map(id => Number(id)),
-					});
-				}
+				// }
 			}
 		}
 
@@ -91,41 +98,15 @@ export class WeekComputerWorkService  {
 		id: number,
 		updateWeekComputerWorkDto: UpdateWeekComputerWorkDto,
 	): Promise<WeekComputerWork> {
-		const weekComputerWorkEntity = await this.createWeekComputerWorkEntityFromUpdateDto(updateWeekComputerWorkDto, id);
-		await this.weekComputerWorkRepository.update(id, weekComputerWorkEntity);
-		return weekComputerWorkEntity;
+		const { computerId, ...properties } = updateWeekComputerWorkDto;
+		const computer = await this.computerService.readById(computerId);
+		const weekComputerWork = { computer, ...properties };
+        return (await this.weekComputerWorkRepository.update(id, weekComputerWork)).raw;
 	}
 
 	public async delete(
         id: number,
     ): Promise<void> {
 		await this.weekComputerWorkRepository.softDelete(id);
-	}
-
-	private async createWeekComputerWorkEntityFromCreateDto(
-		createWeekComputerWorkDto: CreateWeekComputerWorkDto,
-	): Promise<WeekComputerWork> {
-		let weekComputerWork = new WeekComputerWork();
-		for(let prop in createWeekComputerWorkDto) {
-			weekComputerWork[prop] = createWeekComputerWorkDto[prop];
-		}
-		weekComputerWork.computer = await this.computerService.readById(createWeekComputerWorkDto.computerId);
-		return weekComputerWork;
-	}
-
-	private async createWeekComputerWorkEntityFromUpdateDto(
-		updateWeekComputerWorkDto: UpdateWeekComputerWorkDto,
-		id: number,
-	): Promise<WeekComputerWork> {
-		let existingWeekComputerWork = await this.readById(id);
-		for(let prop in updateWeekComputerWorkDto) {
-			if(updateWeekComputerWorkDto[prop] && prop.toString() !== "computerId") {
-				existingWeekComputerWork[prop] = updateWeekComputerWorkDto[prop];
-			}
-		}
-		if(updateWeekComputerWorkDto.computerId) {
-			existingWeekComputerWork.computer = await this.computerService.readById(updateWeekComputerWorkDto.computerId);
-		}
-		return existingWeekComputerWork;
 	}
 }

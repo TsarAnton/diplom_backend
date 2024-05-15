@@ -1,13 +1,19 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
+import { Request } from 'express';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private jwtService: JwtService
-    ) {}
+  ) {}
+
+  private extractTokenFromHeader(request: Request): string | undefined {
+    const [type, token] = request.headers.authorization?.split(' ') ?? [];
+    return type === 'Bearer' ? token : undefined;
+  }
 
   canActivate(context: ExecutionContext): boolean {
     //получение списка разрешенных ролей из декоратора @HasRoles()
@@ -19,9 +25,8 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    //получаем и расшифровываем токен
-    const rawHeaders = context.switchToHttp().getRequest().rawHeaders;
-    const token = String(rawHeaders[1]).slice(7);
+    const request = context.switchToHttp().getRequest();
+    const token = this.extractTokenFromHeader(request);
     const user = Object(this.jwtService.decode(token));
 
     //при совпадении хотя бы одной роли - возвращает true

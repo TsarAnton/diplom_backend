@@ -18,8 +18,10 @@ export class YearComputerWorkService  {
 	public async create(
         createYearComputerWorkDto: CreateYearComputerWorkDto,
     ): Promise<YearComputerWork> {
-		const yearComputerWorkEntity = await this.createYearComputerWorkEntityFromCreateDto(createYearComputerWorkDto);
-        return this.yearComputerWorkRepository.save(yearComputerWorkEntity);
+		const { computerId, ...properties } = createYearComputerWorkDto;
+		const computer = await this.computerService.readById(computerId);
+		const yearComputerWork = { computer, ...properties };
+        return this.yearComputerWorkRepository.save(yearComputerWork);
 	}
 
 	public async readAll(
@@ -29,7 +31,7 @@ export class YearComputerWorkService  {
 		const queryBuilder = this.yearComputerWorkRepository.createQueryBuilder();
 
 		queryBuilder
-			.select(['yearComputerWork.id', 'yearComputerWork.date', 'yearComputerWork.computerId', 'yearComputerWork.hours'])
+			.select(['yearComputerWork.id', 'yearComputerWork.date', 'yearComputerWork.computerId', 'yearComputerWork.hours', 'yearComputerWork.operatingSystem'])
 			.from(YearComputerWork, 'yearComputerWork')
             .leftJoin('yearComputerWork.computer', 'computer')
             .addSelect([
@@ -51,16 +53,21 @@ export class YearComputerWorkService  {
 					hours: options.filter.hours,
 				});
 			}
-			if(options.filter.computerIds) {
-				if(typeof options.filter.computerIds === "string") {
-					queryBuilder.andWhere('computer.id = :computerIds', {
-						computerIds: Number(options.filter.computerIds),
+			if (options.filter.operatingSystem) {
+				queryBuilder.andWhere('yearComputerWork.operatingSystem = :operatingSystem', {
+					operatingSystem: options.filter.operatingSystem,
+				});
+			}
+			if(options.filter.computers) {
+				// if(typeof options.filter.computers === "string") {
+				// 	queryBuilder.andWhere('computer.id = :computers', {
+				// 		computers: Number(options.filter.computers),
+				// 	});
+				// } else {
+					queryBuilder.andWhere('computer.id IN (:...computers)', {
+						computers: options.filter.computers, //options.filter.computers.map(id => Number(id)),
 					});
-				} else {
-					queryBuilder.andWhere('computer.id IN (:...computerIds)', {
-						computerIds: options.filter.computerIds.map(id => Number(id)),
-					});
-				}
+				// }
 			}
 		}
 
@@ -91,41 +98,16 @@ export class YearComputerWorkService  {
 		id: number,
 		updateYearComputerWorkDto: UpdateYearComputerWorkDto,
 	): Promise<YearComputerWork> {
-		const yearComputerWorkEntity = await this.createYearComputerWorkEntityFromUpdateDto(updateYearComputerWorkDto, id);
-		await this.yearComputerWorkRepository.update(id, yearComputerWorkEntity);
-		return yearComputerWorkEntity;
+		const { computerId, ...properties } = updateYearComputerWorkDto;
+		const computer = await this.computerService.readById(computerId);
+		const yearComputerWork = { computer, ...properties };
+		//await this.yearComputerWorkRepository.update(id, yearComputerWork);
+		return (await this.yearComputerWorkRepository.update(id, yearComputerWork)).raw;
 	}
 
 	public async delete(
         id: number,
     ): Promise<void> {
 		await this.yearComputerWorkRepository.softDelete(id);
-	}
-
-	private async createYearComputerWorkEntityFromCreateDto(
-		createYearComputerWorkDto: CreateYearComputerWorkDto,
-	): Promise<YearComputerWork> {
-		let yearComputerWork = new YearComputerWork();
-		for(let prop in createYearComputerWorkDto) {
-			yearComputerWork[prop] = createYearComputerWorkDto[prop];
-		}
-		yearComputerWork.computer = await this.computerService.readById(createYearComputerWorkDto.computerId);
-		return yearComputerWork;
-	}
-
-	private async createYearComputerWorkEntityFromUpdateDto(
-		updateYearComputerWorkDto: UpdateYearComputerWorkDto,
-		id: number,
-	): Promise<YearComputerWork> {
-		let existingYearComputerWork = await this.readById(id);
-		for(let prop in updateYearComputerWorkDto) {
-			if(updateYearComputerWorkDto[prop] && prop.toString() !== "computerId") {
-				existingYearComputerWork[prop] = updateYearComputerWorkDto[prop];
-			}
-		}
-		if(updateYearComputerWorkDto.computerId) {
-			existingYearComputerWork.computer = await this.computerService.readById(updateYearComputerWorkDto.computerId);
-		}
-		return existingYearComputerWork;
 	}
 }

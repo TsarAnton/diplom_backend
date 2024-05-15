@@ -18,8 +18,10 @@ export class MonthComputerWorkService  {
 	public async create(
         createMonthComputerWorkDto: CreateMonthComputerWorkDto,
     ): Promise<MonthComputerWork> {
-		const monthComputerWorkEntity = await this.createMonthComputerWorkEntityFromCreateDto(createMonthComputerWorkDto);
-        return this.monthComputerWorkRepository.save(monthComputerWorkEntity);
+		const { computerId, ...properties } = createMonthComputerWorkDto;
+		const computer = await this.computerService.readById(computerId);
+		const monthComputerWork = { computer, ...properties };
+        return this.monthComputerWorkRepository.save(monthComputerWork);
 	}
 
 	public async readAll(
@@ -29,7 +31,7 @@ export class MonthComputerWorkService  {
 		const queryBuilder = this.monthComputerWorkRepository.createQueryBuilder();
 
 		queryBuilder
-			.select(['monthComputerWork.id', 'monthComputerWork.date', 'monthComputerWork.computerId', 'monthComputerWork.hours'])
+			.select(['monthComputerWork.id', 'monthComputerWork.date', 'monthComputerWork.computerId', 'monthComputerWork.hours', 'monthComputerWork.operatingSystem'])
 			.from(MonthComputerWork, 'monthComputerWork')
             .leftJoin('monthComputerWork.computer', 'computer')
             .addSelect([
@@ -51,16 +53,21 @@ export class MonthComputerWorkService  {
 					hours: options.filter.hours,
 				});
 			}
-			if(options.filter.computerIds) {
-				if(typeof options.filter.computerIds === "string") {
-					queryBuilder.andWhere('computer.id = :computerIds', {
-						computerIds: Number(options.filter.computerIds),
+			if (options.filter.operatingSystem) {
+				queryBuilder.andWhere('monthComputerWork.operatingSystem = :operatingSystem', {
+					operatingSystem: options.filter.operatingSystem,
+				});
+			}
+			if(options.filter.computers) {
+				// if(typeof options.filter.computers === "string") {
+				// 	queryBuilder.andWhere('computer.id = :computers', {
+				// 		computers: Number(options.filter.computers),
+				// 	});
+				// } else {
+					queryBuilder.andWhere('computer.id IN (:...computers)', {
+						computers: options.filter.computers, //options.filter.computers.map(id => Number(id)),
 					});
-				} else {
-					queryBuilder.andWhere('computer.id IN (:...computerIds)', {
-						computerIds: options.filter.computerIds.map(id => Number(id)),
-					});
-				}
+				// }
 			}
 		}
 
@@ -91,41 +98,15 @@ export class MonthComputerWorkService  {
 		id: number,
 		updateMonthComputerWorkDto: UpdateMonthComputerWorkDto,
 	): Promise<MonthComputerWork> {
-		const monthComputerWorkEntity = await this.createMonthComputerWorkEntityFromUpdateDto(updateMonthComputerWorkDto, id);
-		await this.monthComputerWorkRepository.update(id, monthComputerWorkEntity);
-		return monthComputerWorkEntity;
+		const { computerId, ...properties } = updateMonthComputerWorkDto;
+		const computer = await this.computerService.readById(computerId);
+		const monthComputerWork = { computer, ...properties };
+        return (await this.monthComputerWorkRepository.update(id, monthComputerWork)).raw;
 	}
 
 	public async delete(
         id: number,
     ): Promise<void> {
 		await this.monthComputerWorkRepository.softDelete(id);
-	}
-
-	private async createMonthComputerWorkEntityFromCreateDto(
-		createMonthComputerWorkDto: CreateMonthComputerWorkDto,
-	): Promise<MonthComputerWork> {
-		let monthComputerWork = new MonthComputerWork();
-		for(let prop in createMonthComputerWorkDto) {
-			monthComputerWork[prop] = createMonthComputerWorkDto[prop];
-		}
-		monthComputerWork.computer = await this.computerService.readById(createMonthComputerWorkDto.computerId);
-		return monthComputerWork;
-	}
-
-	private async createMonthComputerWorkEntityFromUpdateDto(
-		updateMonthComputerWorkDto: UpdateMonthComputerWorkDto,
-		id: number,
-	): Promise<MonthComputerWork> {
-		let existingMonthComputerWork = await this.readById(id);
-		for(let prop in updateMonthComputerWorkDto) {
-			if(updateMonthComputerWorkDto[prop] && prop.toString() !== "computerId") {
-				existingMonthComputerWork[prop] = updateMonthComputerWorkDto[prop];
-			}
-		}
-		if(updateMonthComputerWorkDto.computerId) {
-			existingMonthComputerWork.computer = await this.computerService.readById(updateMonthComputerWorkDto.computerId);
-		}
-		return existingMonthComputerWork;
 	}
 }

@@ -10,14 +10,14 @@ import {
 	MaxLength,
     IsOptional,
 	IsObject,
-	ValidateNested,
 	IsBoolean,
+    ValidateNested
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SortingDto } from './common/sorting.dto';
 import { PaginationDto } from './common/pagination.dto';
 
-export class CreateDayComputerWorkDto {
+export class CreatePeriodComputerWorkDto {
     @IsDefined()
 	@IsInt()
 	@Transform(computerId => Number(computerId))
@@ -26,14 +26,19 @@ export class CreateDayComputerWorkDto {
     @IsNotEmpty()
 	@MaxLength(50)
 	@IsDate()
-    date: Date;
+    dateStart: Date;
+
+    @IsNotEmpty()
+	@MaxLength(50)
+	@IsDate()
+    dateEnd: Date;
 
     @IsNotEmpty()
 	@IsDecimal()
     operatingSystem: string;
 }
 
-export class UpdateDayComputerWorkDto {
+export class UpdatePeriodComputerWorkDto {
     @IsOptional()
 	@IsInt()
 	@Transform(computerId => Number(computerId))
@@ -42,14 +47,19 @@ export class UpdateDayComputerWorkDto {
     @IsOptional()
 	@MaxLength(50)
 	@IsDate()
-    date?: Date;
+    dateStart?: Date;
+
+    @IsOptional()
+	@MaxLength(50)
+	@IsDate()
+    dateEnd?: Date;
 
     @IsOptional()
 	@IsDecimal()
     operatingSystem?: string;
 }
 
-export class ReadDayComputerWorkDto {
+export class ReadPeriodComputerWorkDto {
 	@IsOptional()
 	@IsInt()
 	@Transform(id => Number(id))
@@ -63,14 +73,19 @@ export class ReadDayComputerWorkDto {
     @IsOptional()
 	@MaxLength(50)
 	@IsDate()
-    date?: Date;
+    dateStart?: Date;
+
+    @IsOptional()
+	@MaxLength(50)
+	@IsDate()
+    dateEnd?: Date;
 
     @IsOptional()
 	@IsDecimal()
     operatingSystem?: string;
 }
 
-export class ReadAllDayComputerWorkDto {
+export class ReadAllPeriodComputerWorkDto {
 	@IsOptional()
 	@IsObject()
 	@ValidateNested()
@@ -94,7 +109,12 @@ export class ReadAllDayComputerWorkDto {
     @IsOptional()
 	@MaxLength(50)
 	@IsDate()
-    date?: Date;
+    dateStart?: Date;
+
+    @IsOptional()
+	@MaxLength(50)
+	@IsDate()
+    dateEnd?: Date;
 
     @IsOptional()
 	@IsDecimal()

@@ -18,8 +18,10 @@ export class DayComputerWorkService  {
 	public async create(
         createDayComputerWorkDto: CreateDayComputerWorkDto,
     ): Promise<DayComputerWork> {
-		const dayComputerWorkEntity = await this.createDayComputerWorkEntityFromCreateDto(createDayComputerWorkDto);
-        return this.dayComputerWorkRepository.save(dayComputerWorkEntity);
+		const { computerId, ...properties } = createDayComputerWorkDto;
+		const computer = await this.computerService.readById(computerId);
+		const dayComputerWork = { computer, ...properties };
+        return this.dayComputerWorkRepository.save(dayComputerWork);
 	}
 
 	public async readAll(
@@ -29,7 +31,7 @@ export class DayComputerWorkService  {
 		const queryBuilder = this.dayComputerWorkRepository.createQueryBuilder();
 
 		queryBuilder
-			.select(['dayComputerWork.id', 'dayComputerWork.date', 'dayComputerWork.computerId', 'dayComputerWork.hours'])
+			.select(['dayComputerWork.id', 'dayComputerWork.date', 'dayComputerWork.computerId', 'dayComputerWork.hours', 'dayComputerWork.operatingSystem'])
 			.from(DayComputerWork, 'dayComputerWork')
             .leftJoin('dayComputerWork.computer', 'computer')
             .addSelect([
@@ -51,16 +53,21 @@ export class DayComputerWorkService  {
 					hours: options.filter.hours,
 				});
 			}
-			if(options.filter.computerIds) {
-				if(typeof options.filter.computerIds === "string") {
-					queryBuilder.andWhere('computer.id = :computerIds', {
-						computerIds: Number(options.filter.computerIds),
+			if (options.filter.operatingSystem) {
+				queryBuilder.andWhere('dayComputerWork.operatingSystem = :operatingSystem', {
+					operatingSystem: options.filter.operatingSystem,
+				});
+			}
+			if(options.filter.computers) {
+				// if(typeof options.filter.computers === "string") {
+				// 	queryBuilder.andWhere('computer.id = :computers', {
+				// 		computers: Number(options.filter.computers),
+				// 	});
+				// } else {
+					queryBuilder.andWhere('computer.id IN (:...computers)', {
+						computers: options.filter.computers, //options.filter.computers.map(id => Number(id)),
 					});
-				} else {
-					queryBuilder.andWhere('computer.id IN (:...computerIds)', {
-						computerIds: options.filter.computerIds.map(id => Number(id)),
-					});
-				}
+				// }
 			}
 		}
 
@@ -91,41 +98,16 @@ export class DayComputerWorkService  {
 		id: number,
 		updateDayComputerWorkDto: UpdateDayComputerWorkDto,
 	): Promise<DayComputerWork> {
-		const dayComputerWorkEntity = await this.createDayComputerWorkEntityFromUpdateDto(updateDayComputerWorkDto, id);
-		await this.dayComputerWorkRepository.update(id, dayComputerWorkEntity);
-		return dayComputerWorkEntity;
+		const { computerId, ...properties } = updateDayComputerWorkDto;
+		const computer = await this.computerService.readById(computerId);
+		const dayComputerWork = { computer, ...properties };
+		//await this.dayComputerWorkRepository.update(id, dayComputerWork);
+		return (await this.dayComputerWorkRepository.update(id, dayComputerWork)).raw;
 	}
 
 	public async delete(
         id: number,
     ): Promise<void> {
 		await this.dayComputerWorkRepository.softDelete(id);
-	}
-
-	private async createDayComputerWorkEntityFromCreateDto(
-		createDayComputerWorkDto: CreateDayComputerWorkDto,
-	): Promise<DayComputerWork> {
-		let dayComputerWork = new DayComputerWork();
-		for(let prop in createDayComputerWorkDto) {
-			dayComputerWork[prop] = createDayComputerWorkDto[prop];
-		}
-		dayComputerWork.computer = await this.computerService.readById(createDayComputerWorkDto.computerId);
-		return dayComputerWork;
-	}
-
-	private async createDayComputerWorkEntityFromUpdateDto(
-		updateDayComputerWorkDto: UpdateDayComputerWorkDto,
-		id: number,
-	): Promise<DayComputerWork> {
-		let existingDayComputerWork = await this.readById(id);
-		for(let prop in updateDayComputerWorkDto) {
-			if(updateDayComputerWorkDto[prop] && prop.toString() !== "computerId") {
-				existingDayComputerWork[prop] = updateDayComputerWorkDto[prop];
-			}
-		}
-		if(updateDayComputerWorkDto.computerId) {
-			existingDayComputerWork.computer = await this.computerService.readById(updateDayComputerWorkDto.computerId);
-		}
-		return existingDayComputerWork;
 	}
 }

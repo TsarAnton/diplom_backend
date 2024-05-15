@@ -1,5 +1,6 @@
 import { Controller, Request, Post, UseGuards, Body, NotFoundException } from '@nestjs/common';
-import { AuthService } from './auth.service';
+import { AuthService } from '../services/auth.service';
+import { AuthDto } from '../dto/auth.dto';
 
 @Controller()
 export class AuthController {
@@ -8,9 +9,9 @@ export class AuthController {
     ) {}
 
   @Post('auth/login')
-  async login(@Body() req) {
+  async login(@Body() user: AuthDto) {
     //validateUser находит возвращает пользователя и список его ролей
-    const token = await this.authService.validateUser(req.login, req.password);
+    const token = await this.authService.validateUser(user.login, user.password);
     if(token == null) {
       throw new NotFoundException(`Incorrect login or password`);
     }

@@ -1,12 +1,9 @@
 import { IPaginationOptions } from "./common/pagination-options";
 import { ISortingOptions } from "./common/sorting-options";
 
-export interface IMonthComputerWorkOptions {
+export interface IRoleOptions {
     filter?: {
-        date?: Date;
-        hours?: number;
-        computers?: number[];
-        operatingSystem?: string;
+        name?: string;
     }
     sorting?: ISortingOptions;
     pagination?: IPaginationOptions;

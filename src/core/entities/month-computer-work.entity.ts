@@ -13,6 +13,9 @@ export class MonthComputerWork {
     @Column()
 	hours: number;
 
+	@Column()
+	operatingSystem: string;
+
 	@ManyToOne(
 		() => Computer,
 		computer => computer.logsWindows,

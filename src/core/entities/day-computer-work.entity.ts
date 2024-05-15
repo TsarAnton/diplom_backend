@@ -13,6 +13,9 @@ export class DayComputerWork {
     @Column()
 	hours: number;
 
+	@Column()
+	operatingSystem: string;
+
 	@ManyToOne(
 		() => Computer,
 		computer => computer.logsWindows,

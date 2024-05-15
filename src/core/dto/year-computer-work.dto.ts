@@ -87,8 +87,9 @@ export class ReadAllYearComputerWorkDto {
 	@IsDefined()
 	@IsArray()
 	@IsInt({ each: true })
-	//@Transform((computerIds: string[]) => computerIds.map(id => Number(id)))
-	computerIds?: number[];
+	//@Transform((computers: string[]) => computers.map(id => Number(id)))
+	@Transform(computers => Array(computers).map(id => Number(id)))
+	computers?: number[];
 
     @IsOptional()
 	@MaxLength(50)

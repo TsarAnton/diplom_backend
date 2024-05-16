@@ -6,6 +6,7 @@ import { YearComputerWork } from '../entities/year-computer-work.entity';
 import { IYearComputerWorkOptions } from '../types/year-computer-work.options';
 import { CreateYearComputerWorkDto, UpdateYearComputerWorkDto, ReadYearComputerWorkDto } from '../dto/year-computer-work.dto';
 import { ComputerService } from './computer.service';
+import { StatisticsHoursMember } from '../types/statistics.options';
 
 @Injectable()
 export class YearComputerWorkService  {
@@ -109,5 +110,37 @@ export class YearComputerWorkService  {
         id: number,
     ): Promise<void> {
 		await this.yearComputerWorkRepository.softDelete(id);
+	}
+
+	public async readWorkHours(
+        dates: Date[],
+    ): Promise<StatisticsHoursMember[]> {
+
+		const queryBuilder = this.yearComputerWorkRepository.createQueryBuilder();
+
+		queryBuilder
+			.select(['yearComputerWork.computerId', 'yearComputerWork.hours'])
+			.from(YearComputerWork, 'yearComputerWork')
+            .leftJoin('yearComputerWork.computer', 'computer')
+            .addSelect([
+                'computer.id',
+                'computer.name',
+                'computer.ipAddress',
+                'computer.macAddress',
+                'computer.audince',
+            ])
+			.andWhere('yearComputerWork.date IN (:...dates)', {
+				dates: dates,
+			})
+			.groupBy('yearComputerWork.computer');
+		
+		const computersArray = await queryBuilder.getMany();
+
+		const computers = computersArray.map(el => ({
+			computer: el.computer,
+			hours: el.hours,
+		}))
+
+		return computers;
 	}
 }

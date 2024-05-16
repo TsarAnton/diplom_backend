@@ -1,20 +1,22 @@
 import { Controller, Get, Post, Delete, Param, Body, Put, NotFoundException, BadRequestException, HttpStatus, HttpCode, UseGuards, Query } from '@nestjs/common';
 import { Computer } from '../entities/computer.entity';
 import { ComputerService } from '../services/computer.service';
-import { CreateStatisticsDto } from '../dto/statistics.dto';
+import { CreateStatisticsDto, ReadStatisticsDto } from '../dto/statistics.dto';
 import { LogWindowsService } from '../services/log-windows.service';
 import { PeriodComputerWorkService } from '../services/period-computer-work.service';
 import { DayComputerWorkService } from '../services/day-computer-work.service';
 import { WeekComputerWorkService } from '../services/week-computer-work.service';
 import { MonthComputerWorkService } from '../services/month-computer-work.service';
 import { YearComputerWorkService } from '../services/year-computer-work.service';
+import { StatisticsHours, StatisticsPeriod } from '../types/statistics.options';
+import { getDayNext, getDayStart, getMonthNext, getMonthStart, getWeekNext, getWeekStart, getYearNext, getYearStart } from '../types/date.functions';
 
 @Controller('statistics')
 export class ComputerController {
   constructor(
     private readonly computerService: ComputerService,
     private readonly logWindowsService: LogWindowsService,
-    private readonly periodComputerWork: PeriodComputerWorkService,
+    private readonly periodComputerWorkService: PeriodComputerWorkService,
     private readonly dayComputerWorkService: DayComputerWorkService,
     private readonly weekComputerWorkService: WeekComputerWorkService,
     private readonly monthComputerWorkService: MonthComputerWorkService,
@@ -22,9 +24,79 @@ export class ComputerController {
     ){
   }
 
+  @Get('/periods')
+  @HttpCode(HttpStatus.OK)
+  getPeriodsAction(@Query() readStatisticsDto: ReadStatisticsDto): Promise<StatisticsPeriod> {
+    return this.periodComputerWorkService.readWorkPeriods(readStatisticsDto);
+  }
+
+  @Get('/hours')
+  @HttpCode(HttpStatus.OK)
+  async getHoursAction(@Query() readStatisticsDto: ReadStatisticsDto): Promise<StatisticsHours> {
+    let { dateStart, dateEnd } = readStatisticsDto;
+
+    //выбор часов работы по годам
+    let datesYear = [];
+    let nextYear = getYearNext(dateStart);
+    while(nextYear.getTime() < dateEnd.getTime()) {
+        datesYear.push(nextYear);
+        nextYear = getYearNext(nextYear);
+    }
+
+    let computersYearWork = [];
+    if(datesYear.length !== 0) {
+        computersYearWork = await this.yearComputerWorkService.readWorkHours(datesYear);
+        dateEnd = getYearNext(dateStart);
+    }
+
+    //выбор часов работы по оставшимся месяцам
+    let datesMonth = [];
+    let nextMonth = getMonthNext(dateStart);
+    while(nextMonth.getTime() < dateEnd.getTime()) {
+        datesMonth.push(nextMonth);
+        nextMonth = getMonthNext(nextMonth);
+    }
+
+    let computersMonthWork = [];
+    if(datesMonth.length !== 0) {
+        computersMonthWork = await this.monthComputerWorkService.readWorkHours(datesMonth);
+        dateEnd = getMonthNext(dateStart);
+    }
+
+    //выбор часов работы по оставшимся неделям
+    let datesWeek = [];
+    let nextWeek = getWeekNext(dateStart);
+    while(nextWeek.getTime() < dateEnd.getTime()) {
+        datesWeek.push(nextWeek);
+        nextWeek = getWeekNext(nextWeek);
+    }
+
+    let computersWeekWork = [];
+    if(datesWeek.length !== 0) {
+        computersWeekWork = await this.weekComputerWorkService.readWorkHours(datesWeek);
+        dateEnd = getWeekNext(dateStart);
+    }
+
+    //выбор часов работы по оставшимся дням
+    let datesDay = [dateStart];
+    let nextDay = getDayNext(dateStart);
+    while(nextDay.getTime() < dateEnd.getTime()) {
+        datesDay.push(nextDay);
+        nextDay = getDayNext(nextDay);
+    }
+
+    let computersDayWork = [];
+    if(datesDay.length !== 0) {
+        computersDayWork = await this.dayComputerWorkService.readWorkHours(datesDay);
+        dateEnd = getDayNext(dateStart);
+    }
+
+  }
+
   @Post()
   @HttpCode(HttpStatus.OK)
-  async createStatisticsAction(@Body() properties: CreateStatisticsDto): Promise<void>{
+  async createStatisticsAction(@Body() properties: CreateStatisticsDto): Promise<void> {
+    //получили компьютер, если такого нет - создали
     const computerOptions = { 
         name: properties.computerName, 
         macAddress: properties.macAddress, 
@@ -36,6 +108,7 @@ export class ComputerController {
         computer = await this.computerService.create(computerOptions);
     }
 
+    //запись в таблицу логов
     const logWindowsOptions = {
         computerId: computer.id,
         type: properties.type,
@@ -45,6 +118,8 @@ export class ComputerController {
     };
     this.logWindowsService.create(logWindowsOptions);
 
+
+    //запись в таблицу периодов
     const periodComputerWorkOptions = {
         computerId: computer.id,
         dateStart: properties.date,
@@ -54,18 +129,19 @@ export class ComputerController {
 
     let hours = 0;
     if(properties.type) {
-        this.periodComputerWork.create(periodComputerWorkOptions);
+        this.periodComputerWorkService.create(periodComputerWorkOptions);
     } else {
-        const periodComputerWork = await this.periodComputerWork.readOne(periodComputerWorkOptions);
-        const updatedComputerWork = await this.periodComputerWork.update(periodComputerWork.id, { dateEnd: properties.date });
+        const periodComputerWorkService = await this.periodComputerWorkService.readOne(periodComputerWorkOptions);
+        const updatedComputerWork = await this.periodComputerWorkService.update(periodComputerWorkService.id, { dateEnd: properties.date });
         hours = (updatedComputerWork.dateEnd.getTime() - updatedComputerWork.dateStart.getTime()) / 3600000; 
     }
 
+    //запись в таблицы времени работы по дням/неделям/месяцам/годам
     const propertiesDate = properties.date;
-    const startDayDate = new Date(propertiesDate.getFullYear(), propertiesDate.getMonth(), propertiesDate.getDate(), 0, 0, 0, 0);
-    const startWeekDate = new Date(startDayDate.getTime() - (startDayDate.getDay() === 0 ? 6 : (startDayDate.getDay() - 1)) * 86400000);
-    const startMonthDate = new Date(startDayDate.getFullYear(), propertiesDate.getMonth(), 1);
-    const startYearDate = new Date(startDayDate.getFullYear(), 0, 1);
+    const startDayDate = getDayStart(propertiesDate);
+    const startWeekDate = getWeekStart(propertiesDate);
+    const startMonthDate = getMonthStart(propertiesDate);
+    const startYearDate = getYearStart(propertiesDate);
 
     const dayComputerWorkOptions = {
         date: startDayDate,

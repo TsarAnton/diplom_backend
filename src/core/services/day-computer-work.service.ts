@@ -6,6 +6,8 @@ import { DayComputerWork } from '../entities/day-computer-work.entity';
 import { IDayComputerWorkOptions } from '../types/day-computer-work.options';
 import { CreateDayComputerWorkDto, UpdateDayComputerWorkDto, ReadDayComputerWorkDto } from '../dto/day-computer-work.dto';
 import { ComputerService } from './computer.service';
+import { ReadStatisticsDto } from '../dto/statistics.dto';
+import { StatisticsHours, StatisticsHoursMember } from '../types/statistics.options';
 
 @Injectable()
 export class DayComputerWorkService  {
@@ -109,5 +111,37 @@ export class DayComputerWorkService  {
         id: number,
     ): Promise<void> {
 		await this.dayComputerWorkRepository.softDelete(id);
+	}
+
+	public async readWorkHours(
+        dates: Date[],
+    ): Promise<StatisticsHoursMember[]> {
+
+		const queryBuilder = this.dayComputerWorkRepository.createQueryBuilder();
+
+		queryBuilder
+			.select(['dayComputerWork.computerId', 'dayComputerWork.hours'])
+			.from(DayComputerWork, 'dayComputerWork')
+            .leftJoin('dayComputerWork.computer', 'computer')
+            .addSelect([
+                'computer.id',
+                'computer.name',
+                'computer.ipAddress',
+                'computer.macAddress',
+                'computer.audince',
+            ])
+			.andWhere('dayComputerWork.date IN (:...dates)', {
+				dates: dates,
+			})
+			.groupBy('dayComputerWork.computer');
+		
+		const computersArray = await queryBuilder.getMany();
+
+		const computers = computersArray.map(el => ({
+			computer: el.computer,
+			hours: el.hours,
+		}))
+
+		return computers;
 	}
 }

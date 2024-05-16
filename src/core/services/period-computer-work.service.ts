@@ -6,6 +6,8 @@ import { PeriodComputerWork } from '../entities/period-computer-work.entity';
 import { IPeriodComputerWorkOptions } from '../types/period-computer-work.options';
 import { CreatePeriodComputerWorkDto, UpdatePeriodComputerWorkDto, ReadPeriodComputerWorkDto } from '../dto/period-computer-work.dto';
 import { ComputerService } from './computer.service';
+import { StatisticsPeriod, StatisticsPeriodMember } from '../types/statistics.options';
+import { ReadStatisticsDto } from '../dto/statistics.dto';
 
 @Injectable()
 export class PeriodComputerWorkService  {
@@ -114,5 +116,58 @@ export class PeriodComputerWorkService  {
         id: number,
     ): Promise<void> {
 		await this.periodComputerWorkRepository.softDelete(id);
+	}
+
+	public async readWorkPeriods(
+        readStatisticsDto: ReadStatisticsDto,
+    ): Promise<StatisticsPeriod> {
+
+		const queryBuilder = this.periodComputerWorkRepository.createQueryBuilder();
+
+		queryBuilder
+			.select(['periodComputerWork.computerId', 'periodComputerWork.dateStart', 'periodComputerWork.dateEnd'])
+			.from(PeriodComputerWork, 'periodComputerWork')
+            .leftJoin('periodComputerWork.computer', 'computer')
+            .addSelect([
+                'computer.id',
+                'computer.name',
+                'computer.ipAddress',
+                'computer.macAddress',
+                'computer.audince',
+            ])
+			.andWhere('computer.id IN (:...computers)', {
+				computers: readStatisticsDto.computers,
+			})
+			.andWhere('dayComputerWork.startDate >= :dateStart', {
+				dateStart: readStatisticsDto.dateStart,
+			})
+			.andWhere('dayComputerWork.dateEnd IS NOT NULL')
+			.orderBy('computer.id', 'ASC');
+		
+		let computersArray = await queryBuilder.getMany();
+
+		if(computersArray.length === 0) {
+			return null;
+		}
+
+		let statisticsPeriod = new StatisticsPeriod();
+		statisticsPeriod.dateStart = readStatisticsDto.dateStart;
+		statisticsPeriod.dateEnd = readStatisticsDto.dateEnd;
+
+		let statisticsPeriodMember = new StatisticsPeriodMember();
+		let currentComputerId = computersArray[0].computer.id;
+		statisticsPeriodMember.computer = computersArray[0].computer;
+
+		for(let el of computersArray) {
+			if(el.dateEnd.getTime() > readStatisticsDto.dateEnd.getTime()) {
+				el.dateEnd = readStatisticsDto.dateEnd;
+			}
+			if(el.computer.id !== currentComputerId) {
+				statisticsPeriod.computers.push(statisticsPeriodMember);
+				statisticsPeriodMember.computer = el.computer;
+			}
+			statisticsPeriodMember.periods.push({ dateStart: el.dateStart, dateEnd: el.dateEnd });
+		}
+		return statisticsPeriod;
 	}
 }

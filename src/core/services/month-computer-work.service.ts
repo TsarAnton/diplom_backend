@@ -6,6 +6,7 @@ import { MonthComputerWork } from '../entities/month-computer-work.entity';
 import { IMonthComputerWorkOptions } from '../types/month-computer-work.options';
 import { CreateMonthComputerWorkDto, UpdateMonthComputerWorkDto, ReadMonthComputerWorkDto } from '../dto/month-computer-work.dto';
 import { ComputerService } from './computer.service';
+import { StatisticsHoursMember } from '../types/statistics.options';
 
 @Injectable()
 export class MonthComputerWorkService  {
@@ -108,5 +109,37 @@ export class MonthComputerWorkService  {
         id: number,
     ): Promise<void> {
 		await this.monthComputerWorkRepository.softDelete(id);
+	}
+
+	public async readWorkHours(
+        dates: Date[],
+    ): Promise<StatisticsHoursMember[]> {
+
+		const queryBuilder = this.monthComputerWorkRepository.createQueryBuilder();
+
+		queryBuilder
+			.select(['monthComputerWork.computerId', 'monthComputerWork.hours'])
+			.from(MonthComputerWork, 'monthComputerWork')
+            .leftJoin('monthComputerWork.computer', 'computer')
+            .addSelect([
+                'computer.id',
+                'computer.name',
+                'computer.ipAddress',
+                'computer.macAddress',
+                'computer.audince',
+            ])
+			.andWhere('monthComputerWork.date IN (:...dates)', {
+				dates: dates,
+			})
+			.groupBy('monthComputerWork.computer');
+		
+		const computersArray = await queryBuilder.getMany();
+
+		const computers = computersArray.map(el => ({
+			computer: el.computer,
+			hours: el.hours,
+		}))
+
+		return computers;
 	}
 }

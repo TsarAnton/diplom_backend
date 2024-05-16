@@ -6,6 +6,7 @@ import { WeekComputerWork } from '../entities/week-computer-work.entity';
 import { IWeekComputerWorkOptions } from '../types/week-computer-work.options';
 import { CreateWeekComputerWorkDto, UpdateWeekComputerWorkDto, ReadWeekComputerWorkDto } from '../dto/week-computer-work.dto';
 import { ComputerService } from './computer.service';
+import { StatisticsHoursMember } from '../types/statistics.options';
 
 @Injectable()
 export class WeekComputerWorkService  {
@@ -108,5 +109,37 @@ export class WeekComputerWorkService  {
         id: number,
     ): Promise<void> {
 		await this.weekComputerWorkRepository.softDelete(id);
+	}
+
+	public async readWorkHours(
+        dates: Date[],
+    ): Promise<StatisticsHoursMember[]> {
+
+		const queryBuilder = this.weekComputerWorkRepository.createQueryBuilder();
+
+		queryBuilder
+			.select(['weekComputerWork.computerId', 'weekComputerWork.hours'])
+			.from(WeekComputerWork, 'weekComputerWork')
+            .leftJoin('weekComputerWork.computer', 'computer')
+            .addSelect([
+                'computer.id',
+                'computer.name',
+                'computer.ipAddress',
+                'computer.macAddress',
+                'computer.audince',
+            ])
+			.andWhere('weekComputerWork.date IN (:...dates)', {
+				dates: dates,
+			})
+			.groupBy('weekComputerWork.computer');
+		
+		const computersArray = await queryBuilder.getMany();
+
+		const computers = computersArray.map(el => ({
+			computer: el.computer,
+			hours: el.hours,
+		}))
+
+		return computers;
 	}
 }

@@ -77,6 +77,7 @@ export class ComputerController {
     if(datesWeek.length !== 0) {
         computersWeekWork = await this.weekComputerWorkService.readWorkHours(datesWeek);
         dateEnd = getWeekNext(dateStart);
+        //если последняя неделя и первый месяц перекрываются, неделю удаляем, оставшиеся дни добавляем к массиву дней
         if(datesMonth.length !== 0 && getWeekEnd(datesWeek[datesWeek.length - 1]).getTime() <= datesMonth[datesMonth.length - 1].getTime()) {
             let currentDay = datesWeek[datesWeek.length - 1];
             datesWeek.pop();
@@ -102,6 +103,7 @@ export class ComputerController {
         dateEnd = getDayNext(dateStart);
     }
 
+    //суммируем часы работы по компьютерам
     let computersMap = new Map();
     for(let el of computersDayWork) {
         if(computersMap.get(el.computer.id) == undefined) {

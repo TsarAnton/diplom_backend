@@ -9,7 +9,7 @@ import { WeekComputerWorkService } from '../services/week-computer-work.service'
 import { MonthComputerWorkService } from '../services/month-computer-work.service';
 import { YearComputerWorkService } from '../services/year-computer-work.service';
 import { StatisticsHours, StatisticsPeriod } from '../types/statistics.options';
-import { getDayNext, getDayStart, getMonthNext, getMonthStart, getWeekNext, getWeekStart, getYearNext, getYearStart } from '../types/date.functions';
+import { getDayNext, getDayStart, getMonthNext, getMonthStart, getWeekEnd, getWeekNext, getWeekStart, getYearNext, getYearStart } from '../types/date.functions';
 
 @Controller('statistics')
 export class ComputerController {
@@ -71,14 +71,25 @@ export class ComputerController {
         nextWeek = getWeekNext(nextWeek);
     }
 
+    let datesDay = [dateStart];
+
     let computersWeekWork = [];
     if(datesWeek.length !== 0) {
         computersWeekWork = await this.weekComputerWorkService.readWorkHours(datesWeek);
         dateEnd = getWeekNext(dateStart);
+        if(datesMonth.length !== 0 && getWeekEnd(datesWeek[datesWeek.length - 1]).getTime() <= datesMonth[datesMonth.length - 1].getTime()) {
+            let currentDay = datesWeek[datesWeek.length - 1];
+            datesWeek.pop();
+            let count = 0;
+            while(currentDay.getTime() !== datesMonth[0].getTime() && count < 7) {
+                datesDay.push(currentDay);
+                currentDay = getDayNext(currentDay);
+                count++;
+            }
+        } 
     }
 
     //выбор часов работы по оставшимся дням
-    let datesDay = [dateStart];
     let nextDay = getDayNext(dateStart);
     while(nextDay.getTime() < dateEnd.getTime()) {
         datesDay.push(nextDay);
@@ -89,6 +100,42 @@ export class ComputerController {
     if(datesDay.length !== 0) {
         computersDayWork = await this.dayComputerWorkService.readWorkHours(datesDay);
         dateEnd = getDayNext(dateStart);
+    }
+
+    let computersMap = new Map();
+    for(let el of computersDayWork) {
+        if(computersMap.get(el.computer.id) == undefined) {
+            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours });
+        } else {
+            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours + computersMap.get(el.computer.id).hours });
+        }
+    }
+    for(let el of computersWeekWork) {
+        if(computersMap.get(el.computer.id) == undefined) {
+            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours });
+        } else {
+            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours + computersMap.get(el.computer.id).hours });
+        }
+    }
+    for(let el of computersMonthWork) {
+        if(computersMap.get(el.computer.id) == undefined) {
+            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours });
+        } else {
+            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours + computersMap.get(el.computer.id).hours });
+        }
+    }
+    for(let el of computersYearWork) {
+        if(computersMap.get(el.computer.id) == undefined) {
+            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours });
+        } else {
+            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours + computersMap.get(el.computer.id).hours });
+        }
+    }
+    
+    return {
+        dateStart: dateStart,
+        dateEnd:readStatisticsDto.dateEnd,
+        computers: Array.from(computersMap, ([name, value]) => (value)),
     }
 
   }

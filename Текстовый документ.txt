@@ -1,0 +1,89 @@
+    export function getDayNext(date) {
+    return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+}
+
+export function getWeekEnd(date){
+    return new Date(date.getTime() + (6 - (date.getDay() === 0 ? 6 : (date.getDay() - 1))) * 86400000);
+}
+
+export function getWeekNext(date){
+    return new Date(date.getTime() + (7 - (date.getDay() === 0 ? 6 : (date.getDay() - 1))) * 86400000);
+}
+
+export function getMonthNext(date) {
+    if(date.getMonth() === 11) {
+        return getYearNext(date);
+    }
+    return new Date(date.getFullYear(), date.getMonth() + 1, 1);
+}
+
+export function getYearNext(date) {
+    return new Date(date.getFullYear() + 1, 0, 1);
+}
+    
+    readStatisticsDto = { dateStart: new Date(2024, 4, 3), dateEnd: new Date(2026, 8, 16)};
+    let { dateStart, dateEnd } = readStatisticsDto;
+
+    //выбор часов работы по годам
+    let datesYear = [];
+    let nextYear = getYearNext(dateStart);
+    while(nextYear.getTime() < dateEnd.getTime()) {
+        datesYear.push(nextYear);
+        nextYear = getYearNext(nextYear);
+    }
+
+    if(datesYear.length !== 0) {
+        dateEnd = getYearNext(dateStart);
+    }
+
+    //выбор часов работы по оставшимся месяцам
+    let datesMonth = [];
+    let nextMonth = getMonthNext(dateStart);
+    while(nextMonth.getTime() < dateEnd.getTime()) {
+        datesMonth.push(nextMonth);
+        nextMonth = getMonthNext(nextMonth);
+    }
+
+    if(datesMonth.length !== 0) {
+        dateEnd = getMonthNext(dateStart);
+    }
+
+    //выбор часов работы по оставшимся неделям
+    let datesWeek = [];
+    let nextWeek = getWeekNext(dateStart);
+    while(nextWeek.getTime() < dateEnd.getTime()) {
+        datesWeek.push(nextWeek);
+        nextWeek = getWeekNext(nextWeek);
+    }
+
+    let datesDay = [dateStart];
+
+    if(datesWeek.length !== 0) {
+        dateEnd = getWeekNext(dateStart);
+        if(datesMonth.length !== 0 && getWeekEnd(datesWeek[datesWeek.length - 1]).getTime() <= datesMonth[datesMonth.length - 1].getTime()) {
+            let currentDay = datesWeek[datesWeek.length - 1];
+            datesWeek.pop();
+            let count = 0;
+            while(currentDay.getTime() !== datesWeek[datesWeek.length - 1] && count < 7) {
+                datesDay.push(currentDay);
+                currentDay = getDayNext(currentDay);
+                count++;
+            }
+        } 
+    }
+
+    //выбор часов работы по оставшимся дням
+    let nextDay = getDayNext(dateStart);
+    while(nextDay.getTime() < dateEnd.getTime()) {
+        datesDay.push(nextDay);
+        nextDay = getDayNext(nextDay);
+    }
+
+    if(datesDay.length !== 0) {
+        dateEnd = getDayNext(dateStart);
+    }
+
+console.log(dateStart);
+console.log(datesWeek)
+console.log(datesDay)
+console.log(datesMonth)

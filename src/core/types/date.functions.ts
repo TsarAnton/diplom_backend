@@ -33,3 +33,7 @@ export function getMonthNext(date: Date): Date {
 export function getYearNext(date: Date): Date {
     return new Date(date.getFullYear() + 1, 0, 1);
 }
+
+export function getWeekEnd(date: Date): Date {
+    return new Date(date.getTime() + (6 - (date.getDay() === 0 ? 6 : (date.getDay() - 1))) * 86400000);
+}

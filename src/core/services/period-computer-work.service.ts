@@ -8,6 +8,7 @@ import { CreatePeriodComputerWorkDto, UpdatePeriodComputerWorkDto, ReadPeriodCom
 import { ComputerService } from './computer.service';
 import { StatisticsPeriod, StatisticsPeriodMember } from '../types/statistics.options';
 import { ReadStatisticsDto } from '../dto/statistics.dto';
+import { getDateDiffHours } from '../types/date.functions';
 
 @Injectable()
 export class PeriodComputerWorkService  {
@@ -166,7 +167,11 @@ export class PeriodComputerWorkService  {
 				statisticsPeriod.computers.push(statisticsPeriodMember);
 				statisticsPeriodMember.computer = el.computer;
 			}
-			statisticsPeriodMember.periods.push({ dateStart: el.dateStart, dateEnd: el.dateEnd });
+			statisticsPeriodMember.periods.push({ 
+				dateStart: el.dateStart, 
+				dateEnd: el.dateEnd, 
+				hours: getDateDiffHours(el.dateStart, el.dateEnd),
+			});
 		}
 		return statisticsPeriod;
 	}

@@ -21,7 +21,7 @@ export class PeriodComputerWork {
 
 	@ManyToOne(
 		() => Computer,
-		computer => computer.logsWindows,
+		computer => computer.periodsComputerWork,
 		{ onDelete: 'RESTRICT', onUpdate: 'RESTRICT' },
 	)
 	@JoinColumn({ name: 'computer_id', referencedColumnName: 'id' })

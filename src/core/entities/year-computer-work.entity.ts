@@ -18,7 +18,7 @@ export class YearComputerWork {
 
 	@ManyToOne(
 		() => Computer,
-		computer => computer.logsWindows,
+		computer => computer.yearsComputerWork,
 		{ onDelete: 'RESTRICT', onUpdate: 'RESTRICT' },
 	)
 	@JoinColumn({ name: 'computer_id', referencedColumnName: 'id' })

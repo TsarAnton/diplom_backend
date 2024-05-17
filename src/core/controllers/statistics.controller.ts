@@ -5,11 +5,10 @@ import { CreateStatisticsDto, ReadStatisticsDto } from '../dto/statistics.dto';
 import { LogWindowsService } from '../services/log-windows.service';
 import { PeriodComputerWorkService } from '../services/period-computer-work.service';
 import { DayComputerWorkService } from '../services/day-computer-work.service';
-import { WeekComputerWorkService } from '../services/week-computer-work.service';
 import { MonthComputerWorkService } from '../services/month-computer-work.service';
 import { YearComputerWorkService } from '../services/year-computer-work.service';
 import { StatisticsHours, StatisticsPeriod } from '../types/statistics.options';
-import { getDayNext, getDayStart, getMonthNext, getMonthStart, getWeekEnd, getWeekNext, getWeekStart, getYearNext, getYearStart } from '../types/date.functions';
+import { getDateDiffHours, getDayNext, getDayStart, getMonthNext, getMonthStart, getYearNext, getYearStart } from '../types/date.functions';
 
 @Controller('statistics')
 export class ComputerController {
@@ -18,7 +17,6 @@ export class ComputerController {
     private readonly logWindowsService: LogWindowsService,
     private readonly periodComputerWorkService: PeriodComputerWorkService,
     private readonly dayComputerWorkService: DayComputerWorkService,
-    private readonly weekComputerWorkService: WeekComputerWorkService,
     private readonly monthComputerWorkService: MonthComputerWorkService,
     private readonly yearComputerWorkService: YearComputerWorkService,
     ){
@@ -35,8 +33,10 @@ export class ComputerController {
   async getHoursAction(@Query() readStatisticsDto: ReadStatisticsDto): Promise<StatisticsHours> {
     let { dateStart, dateEnd } = readStatisticsDto;
 
-    //выбор часов работы по годам
     let datesYear = [];
+    let datesMonth = [];
+    let datesDay = [dateStart];
+
     let nextYear = getYearNext(dateStart);
     while(nextYear.getTime() < dateEnd.getTime()) {
         datesYear.push(nextYear);
@@ -45,12 +45,25 @@ export class ComputerController {
 
     let computersYearWork = [];
     if(datesYear.length !== 0) {
-        computersYearWork = await this.yearComputerWorkService.readWorkHours(datesYear);
+        const currentYear = datesYear.pop()
+        let currentMonth = currentYear;
+        while(currentMonth.getTime() < dateEnd.getTime()) {
+            datesMonth.push(currentMonth);
+            currentMonth = getMonthNext(currentMonth);
+        }
+        let currentDay = currentYear;
+        if(datesMonth.length !== 0) {
+            currentDay = datesMonth.pop();
+        }
+        while(currentDay.getTime() < dateEnd.getTime()) {
+            datesDay.push(currentDay);
+            currentDay = getDayNext(currentDay);
+        }
+        computersYearWork = await this.yearComputerWorkService.readWorkHours(datesYear, readStatisticsDto.computers);
         dateEnd = getYearNext(dateStart);
     }
 
     //выбор часов работы по оставшимся месяцам
-    let datesMonth = [];
     let nextMonth = getMonthNext(dateStart);
     while(nextMonth.getTime() < dateEnd.getTime()) {
         datesMonth.push(nextMonth);
@@ -59,38 +72,10 @@ export class ComputerController {
 
     let computersMonthWork = [];
     if(datesMonth.length !== 0) {
-        computersMonthWork = await this.monthComputerWorkService.readWorkHours(datesMonth);
+        computersMonthWork = await this.monthComputerWorkService.readWorkHours(datesMonth, readStatisticsDto.computers);
         dateEnd = getMonthNext(dateStart);
     }
 
-    //выбор часов работы по оставшимся неделям
-    let datesWeek = [];
-    let nextWeek = getWeekNext(dateStart);
-    while(nextWeek.getTime() < dateEnd.getTime()) {
-        datesWeek.push(nextWeek);
-        nextWeek = getWeekNext(nextWeek);
-    }
-
-    let datesDay = [dateStart];
-
-    let computersWeekWork = [];
-    if(datesWeek.length !== 0) {
-        computersWeekWork = await this.weekComputerWorkService.readWorkHours(datesWeek);
-        dateEnd = getWeekNext(dateStart);
-        //если последняя неделя и первый месяц перекрываются, неделю удаляем, оставшиеся дни добавляем к массиву дней
-        if(datesMonth.length !== 0 && getWeekEnd(datesWeek[datesWeek.length - 1]).getTime() <= datesMonth[datesMonth.length - 1].getTime()) {
-            let currentDay = datesWeek[datesWeek.length - 1];
-            datesWeek.pop();
-            let count = 0;
-            while(currentDay.getTime() !== datesMonth[0].getTime() && count < 7) {
-                datesDay.push(currentDay);
-                currentDay = getDayNext(currentDay);
-                count++;
-            }
-        } 
-    }
-
-    //выбор часов работы по оставшимся дням
     let nextDay = getDayNext(dateStart);
     while(nextDay.getTime() < dateEnd.getTime()) {
         datesDay.push(nextDay);
@@ -99,20 +84,13 @@ export class ComputerController {
 
     let computersDayWork = [];
     if(datesDay.length !== 0) {
-        computersDayWork = await this.dayComputerWorkService.readWorkHours(datesDay);
+        computersDayWork = await this.dayComputerWorkService.readWorkHours(datesDay, readStatisticsDto.computers);
         dateEnd = getDayNext(dateStart);
     }
 
     //суммируем часы работы по компьютерам
     let computersMap = new Map();
     for(let el of computersDayWork) {
-        if(computersMap.get(el.computer.id) == undefined) {
-            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours });
-        } else {
-            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours + computersMap.get(el.computer.id).hours });
-        }
-    }
-    for(let el of computersWeekWork) {
         if(computersMap.get(el.computer.id) == undefined) {
             computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours });
         } else {
@@ -144,13 +122,13 @@ export class ComputerController {
 
   @Post()
   @HttpCode(HttpStatus.OK)
-  async createStatisticsAction(@Body() properties: CreateStatisticsDto): Promise<void> {
+  async createStatisticsAction(@Body() packet: CreateStatisticsDto): Promise<void> {
     //получили компьютер, если такого нет - создали
     const computerOptions = { 
-        name: properties.computerName, 
-        macAddress: properties.macAddress, 
-        ipAddress: properties.ipAddress, 
-        audince: properties.audince,
+        name: packet.computerName, 
+        macAddress: packet.macAddress, 
+        ipAddress: packet.ipAddress, 
+        audince: packet.audince,
     };
     let computer = await this.computerService.readOne(computerOptions);
     if(computer == null) {
@@ -160,74 +138,61 @@ export class ComputerController {
     //запись в таблицу логов
     const logWindowsOptions = {
         computerId: computer.id,
-        type: properties.type,
-        loginId: properties.loginId,
-        date: properties.date,
-        operatingSystem: properties.operatingSystem,
+        type: packet.type,
+        loginId: packet.loginId,
+        date: packet.date,
+        operatingSystem: packet.operatingSystem,
     };
     this.logWindowsService.create(logWindowsOptions);
-
 
     //запись в таблицу периодов
     const periodComputerWorkOptions = {
         computerId: computer.id,
-        dateStart: properties.date,
-        operatingSystem: properties.operatingSystem,
-        loginId: properties.loginId,
+        dateStart: packet.date,
+        operatingSystem: packet.operatingSystem,
+        loginId: packet.loginId,
     };
 
     let hours = 0;
-    if(properties.type) {
+    if(packet.type) {
         this.periodComputerWorkService.create(periodComputerWorkOptions);
     } else {
         const periodComputerWorkService = await this.periodComputerWorkService.readOne(periodComputerWorkOptions);
-        const updatedComputerWork = await this.periodComputerWorkService.update(periodComputerWorkService.id, { dateEnd: properties.date });
-        hours = (updatedComputerWork.dateEnd.getTime() - updatedComputerWork.dateStart.getTime()) / 3600000; 
+        const updatedComputerWork = await this.periodComputerWorkService.update(periodComputerWorkService.id, { dateEnd: packet.date });
+        hours = getDateDiffHours(updatedComputerWork.dateStart, updatedComputerWork.dateEnd);
     }
 
     //запись в таблицы времени работы по дням/неделям/месяцам/годам
-    const propertiesDate = properties.date;
-    const startDayDate = getDayStart(propertiesDate);
-    const startWeekDate = getWeekStart(propertiesDate);
-    const startMonthDate = getMonthStart(propertiesDate);
-    const startYearDate = getYearStart(propertiesDate);
+    const packetDate = packet.date;
+    const startDayDate = getDayStart(packetDate);
+    const startMonthDate = getMonthStart(packetDate);
+    const startYearDate = getYearStart(packetDate);
 
     const dayComputerWorkOptions = {
         date: startDayDate,
         computerId: computer.id,
-        operatingSystem: properties.operatingSystem,
-        hours: hours,
-    }
-    const weekComputerWorkOptions = {
-        date: startWeekDate,
-        computerId: computer.id,
-        operatingSystem: properties.operatingSystem,
+        operatingSystem: packet.operatingSystem,
         hours: hours,
     }
     const monthComputerWorkOptions = {
         date: startMonthDate,
         computerId: computer.id,
-        operatingSystem: properties.operatingSystem,
+        operatingSystem: packet.operatingSystem,
         hours: hours,
     }
     const yearComputerWorkOptions = {
         date: startYearDate,
         computerId: computer.id,
-        operatingSystem: properties.operatingSystem,
+        operatingSystem: packet.operatingSystem,
         hours: hours,
     }
 
-
     let dayComputerWork = await this.dayComputerWorkService.readOne(dayComputerWorkOptions);
-    let weekComputerWork = await this.weekComputerWorkService.readOne(weekComputerWorkOptions);
     let monthComputerWork = await this.monthComputerWorkService.readOne(monthComputerWorkOptions);
     let yearComputerWork = await this.yearComputerWorkService.readOne(yearComputerWorkOptions);
-    if(properties.type) {
+    if(packet.type) {
         if(dayComputerWork == null) {
             dayComputerWork = await this.dayComputerWorkService.create(dayComputerWorkOptions);
-        }
-        if(weekComputerWork == null) {
-            weekComputerWork = await this.weekComputerWorkService.create(weekComputerWorkOptions);
         }
         if(monthComputerWork == null) {
             monthComputerWork = await this.monthComputerWorkService.create(monthComputerWorkOptions);
@@ -237,7 +202,6 @@ export class ComputerController {
         }
     } else {
         this.dayComputerWorkService.update(dayComputerWork.id, { hours: dayComputerWork.hours + hours });
-        this.weekComputerWorkService.update(weekComputerWork.id, { hours: weekComputerWork.hours + hours });
         this.monthComputerWorkService.update(monthComputerWork.id, { hours: monthComputerWork.hours + hours });
         this.yearComputerWorkService.update(yearComputerWork.id, { hours: yearComputerWork.hours + hours });
     }

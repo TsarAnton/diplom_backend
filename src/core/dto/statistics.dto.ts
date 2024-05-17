@@ -59,7 +59,6 @@ export class ReadStatisticsDto {
 	@IsDefined()
 	@IsArray()
 	@IsInt({ each: true })
-	//@Transform((computers: string[]) => computers.map(id => Number(id)))
 	@Transform(computers => Array(computers).map(id => Number(id)))
 	computers: number[];
 

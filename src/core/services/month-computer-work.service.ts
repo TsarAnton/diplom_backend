@@ -113,6 +113,7 @@ export class MonthComputerWorkService  {
 
 	public async readWorkHours(
         dates: Date[],
+		computerIds: number[],
     ): Promise<StatisticsHoursMember[]> {
 
 		const queryBuilder = this.monthComputerWorkRepository.createQueryBuilder();
@@ -128,6 +129,9 @@ export class MonthComputerWorkService  {
                 'computer.macAddress',
                 'computer.audince',
             ])
+			.andWhere('computer.id IN (:...computers)', {
+				computers: computerIds,
+			})
 			.andWhere('monthComputerWork.date IN (:...dates)', {
 				dates: dates,
 			})

@@ -14,6 +14,7 @@ export class StatisticsHours {
 export class StatisticsPeriodDate {
     dateStart: Date;
     dateEnd: Date;
+    hours: number;
 }
 
 export class StatisticsPeriodMember {

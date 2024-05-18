@@ -14,14 +14,11 @@ export class AuthService {
     if(user === null) {
       return null;
     }
-    if (user && user.password === password) {
-      const result = {
-        login: user.login,
-        roles: user.roles.map(role => role.id),
-      }
-      return result;
+    const result = {
+      login: user.login,
+      roles: user.roles.map(role => role.id),
     }
-    return null;
+    return result;
   }
 
   async login(user: any) {

@@ -16,7 +16,6 @@ export class RolesGuard implements CanActivate {
   }
 
   canActivate(context: ExecutionContext): boolean {
-    //получение списка разрешенных ролей из декоратора @HasRoles()
     const requiredRoles = this.reflector.getAllAndOverride<String[]>('roles', [
       context.getHandler(),
       context.getClass(),
@@ -29,7 +28,6 @@ export class RolesGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
     const user = Object(this.jwtService.decode(token));
 
-    //при совпадении хотя бы одной роли - возвращает true
     return requiredRoles.some((role) => user?.roles?.includes(role));
   }
 }

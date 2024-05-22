@@ -33,20 +33,12 @@ export class PeriodComputerWorkController {
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async getOneByIdAction(@Param('id') id: number): Promise<PeriodComputerWork> {
-    const periodComputerWork = await this.periodComputerWorkService.readById(id);
-    if( periodComputerWork === null ) {
-      throw new NotFoundException(`PeriodComputerWork with id=${id} does not exist`);
-    }
-    return periodComputerWork;
+    return this.periodComputerWorkService.readById(id);
   }
 
   @Post()
   @HttpCode(HttpStatus.OK)
   async createAction(@Body() periodComputerWork: CreatePeriodComputerWorkDto): Promise<PeriodComputerWork>{
-    const existingComputer = await this.computerService.readById(periodComputerWork.computerId);
-    if(existingComputer === null) {
-      throw new BadRequestException(`Computer with id=${periodComputerWork.computerId} does not exist`);
-    }
     return this.periodComputerWorkService.create(periodComputerWork);
   }
 
@@ -56,24 +48,12 @@ export class PeriodComputerWorkController {
     @Param('id') id: number, 
     @Body() periodComputerWork: UpdatePeriodComputerWorkDto
   ): Promise<PeriodComputerWork> {
-      const existingPeriodComputerWork = await this.periodComputerWorkService.readById(id);
-      if(existingPeriodComputerWork === null) {
-        throw new NotFoundException(`PeriodComputerWork with id=${id} does not exist`);
-      }
-      const existingComputer = await this.computerService.readById(periodComputerWork.computerId);
-      if(existingComputer === undefined) {
-        throw new BadRequestException(`Computer with id=${periodComputerWork.computerId} does not exist`);
-      }
       return this.periodComputerWorkService.update(id, periodComputerWork);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async deleteAction(@Param('id') id: number): Promise<void>{
-    const existingPeriodComputerWork = await this.periodComputerWorkService.readById(id);
-    if(existingPeriodComputerWork === null) {
-      throw new NotFoundException(`PeriodComputerWork with id=${id} does not exist`);
-    }
     return this.periodComputerWorkService.delete(id);
   }
 }

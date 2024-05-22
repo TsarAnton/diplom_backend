@@ -23,6 +23,9 @@ export class PeriodComputerWorkService  {
     ): Promise<PeriodComputerWork> {
 		const { computerId, ...properties } = createPeriodComputerWorkDto;
 		const computer = await this.computerService.readById(computerId);
+    	if(computer === null) {
+      		throw new BadRequestException(`Computer with id=${computerId} does not exist`);
+    	}
 		const periodComputerWork = { computer, ...properties };
         return this.periodComputerWorkRepository.save(periodComputerWork);
 	}
@@ -30,11 +33,10 @@ export class PeriodComputerWorkService  {
 	public async readAll(
         options: IPeriodComputerWorkOptions,
     ): Promise<PeriodComputerWork[]> {
-
 		const queryBuilder = this.periodComputerWorkRepository.createQueryBuilder();
 
 		queryBuilder
-			.select(['periodComputerWork.id', 'periodComputerWork.date', 'periodComputerWork.dateEnd', 'periodComputerWork.computerId', 'periodComputerWork.operatingSystem', 'periodComputerWork.loginId'])
+			.select(['periodComputerWork.id', 'periodComputerWork.dateStart', 'periodComputerWork.dateEnd', 'periodComputerWork.loginId', 'periodComputerWork.operatingSystem'])
 			.from(PeriodComputerWork, 'periodComputerWork')
             .leftJoin('periodComputerWork.computer', 'computer')
             .addSelect([
@@ -56,26 +58,20 @@ export class PeriodComputerWorkService  {
 					dateEnd: options.filter.dateEnd,
 				});
 			}
-			if (options.filter.operatingSystem) {
-				queryBuilder.andWhere('periodComputerWork.operatingSystem = :operatingSystem', {
-					operatingSystem: options.filter.operatingSystem,
-				});
-			}
 			if (options.filter.loginId) {
 				queryBuilder.andWhere('periodComputerWork.loginId = :loginId', {
 					loginId: options.filter.loginId,
 				});
 			}
+            if (options.filter.operatingSystem) {
+				queryBuilder.andWhere('periodComputerWork.operatingSystem = :operatingSystem', {
+					operatingSystem: options.filter.operatingSystem,
+				});
+			}
 			if(options.filter.computers) {
-				// if(typeof options.filter.computers === "string") {
-				// 	queryBuilder.andWhere('computer.id = :computers', {
-				// 		computers: Number(options.filter.computers),
-				// 	});
-				// } else {
-					queryBuilder.andWhere('computer.id IN (:...computers)', {
-						computers: options.filter.computers, //options.filter.computers.map(id => Number(id)),
-					});
-				// }
+				queryBuilder.andWhere('computer.id IN (:...computers)', {
+					computers: options.filter.computers, //options.filter.computers.map(id => Number(id)),
+				});
 			}
 		}
 
@@ -93,29 +89,61 @@ export class PeriodComputerWorkService  {
 	public async readById(
         id: number,
     ): Promise<PeriodComputerWork> {
-		return this.periodComputerWorkRepository.findOneBy({ id });
+		const periodComputerWork = await this.periodComputerWorkRepository.findOneBy({ id });
+		if( periodComputerWork === null ) {
+			throw new NotFoundException(`PeriodComputerWork with id=${id} does not exist`);
+		}
+		return periodComputerWork; 
 	}
 
     public async readOne(
         readPeriodComputerWorkDto: ReadPeriodComputerWorkDto,
     ): Promise<PeriodComputerWork> {
-        return this.periodComputerWorkRepository.findOneBy({ ...readPeriodComputerWorkDto });
+		//console.log(readPeriodComputerWorkDto);
+		return await this.periodComputerWorkRepository.findOne({
+			select: ['id', 'computer', 'dateStart', 'dateEnd', 'loginId', 'operatingSystem'],
+			where: {
+				computer: await this.computerService.readById(readPeriodComputerWorkDto.computerId),
+				dateStart: readPeriodComputerWorkDto.dateStart,
+				dateEnd: readPeriodComputerWorkDto.dateEnd,
+				loginId: readPeriodComputerWorkDto.loginId,
+				operatingSystem: readPeriodComputerWorkDto.operatingSystem,
+			},
+			relations: ['computer'],
+		})
+		//return await this.periodComputerWorkRepository.findOneBy({ ...readPeriodComputerWorkDto });
     }
 
 	public async update(
 		id: number,
 		updatePeriodComputerWorkDto: UpdatePeriodComputerWorkDto,
 	): Promise<PeriodComputerWork> {
+		const existingPeriodComputerWork = await this.readById(id);
+      	if(existingPeriodComputerWork === null) {
+        	throw new NotFoundException(`PeriodComputerWork with id=${id} does not exist`);
+      	}
 		const { computerId, ...properties } = updatePeriodComputerWorkDto;
-		const computer = await this.computerService.readById(computerId);
-		const periodComputerWork = { computer, ...properties };
+		if(computerId) {
+			const computer = await this.computerService.readById(computerId);
+			if(computer === null) {
+				throw new BadRequestException(`Computer with id=${computerId} does not exist`);
+			  }
+			const periodComputerWork = { computer, ...properties };
+			await this.periodComputerWorkRepository.update(id, periodComputerWork);
+		} else {
+			await this.periodComputerWorkRepository.update(id, { ...properties });
+		}
 		//await this.periodComputerWorkRepository.update(id, periodComputerWork);
-		return (await this.periodComputerWorkRepository.update(id, periodComputerWork)).raw;
+		return this.readById(id);
 	}
 
 	public async delete(
         id: number,
     ): Promise<void> {
+		const existingPeriodComputerWork = await this.readById(id);
+    	if(existingPeriodComputerWork === null) {
+      		throw new NotFoundException(`PeriodComputerWork with id=${id} does not exist`);
+    	}
 		await this.periodComputerWorkRepository.softDelete(id);
 	}
 
@@ -139,10 +167,10 @@ export class PeriodComputerWorkService  {
 			.andWhere('computer.id IN (:...computers)', {
 				computers: readStatisticsDto.computers,
 			})
-			.andWhere('dayComputerWork.startDate >= :dateStart', {
+			.andWhere('periodComputerWork.startDate >= :dateStart', {
 				dateStart: readStatisticsDto.dateStart,
 			})
-			.andWhere('dayComputerWork.dateEnd IS NOT NULL')
+			.andWhere('periodComputerWork.dateEnd IS NOT NULL')
 			.orderBy('computer.id', 'ASC');
 		
 		let computersArray = await queryBuilder.getMany();

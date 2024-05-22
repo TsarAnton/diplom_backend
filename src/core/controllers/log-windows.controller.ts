@@ -33,20 +33,12 @@ export class LogWindowsController {
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async getOneByIdAction(@Param('id') id: number): Promise<LogWindows> {
-    const logWindows = await this.logWindowsService.readById(id);
-    if( logWindows === null ) {
-      throw new NotFoundException(`LogWindows with id=${id} does not exist`);
-    }
-    return logWindows;
+    return await this.logWindowsService.readById(id);
   }
 
   @Post()
   @HttpCode(HttpStatus.OK)
   async createAction(@Body() logWindows: CreateLogWindowsDto): Promise<LogWindows>{
-    const existingComputer = await this.computerService.readById(logWindows.computerId);
-    if(existingComputer === null) {
-      throw new BadRequestException(`Computer with id=${logWindows.computerId} does not exist`);
-    }
     return this.logWindowsService.create(logWindows);
   }
 
@@ -56,24 +48,12 @@ export class LogWindowsController {
     @Param('id') id: number, 
     @Body() logWindows: UpdateLogWindowsDto
   ): Promise<LogWindows> {
-      const existingLogWindows = await this.logWindowsService.readById(id);
-      if(existingLogWindows === null) {
-        throw new NotFoundException(`LogWindows with id=${id} does not exist`);
-      }
-      const existingComputer = await this.computerService.readById(logWindows.computerId);
-      if(existingComputer === undefined) {
-        throw new BadRequestException(`Computer with id=${logWindows.computerId} does not exist`);
-      }
       return this.logWindowsService.update(id, logWindows);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async deleteAction(@Param('id') id: number): Promise<void>{
-    const existingLogWindows = await this.logWindowsService.readById(id);
-    if(existingLogWindows === null) {
-      throw new NotFoundException(`LogWindows with id=${id} does not exist`);
-    }
     return this.logWindowsService.delete(id);
   }
 }

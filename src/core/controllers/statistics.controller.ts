@@ -11,7 +11,7 @@ import { StatisticsHours, StatisticsPeriod } from '../types/statistics.options';
 import { getDateDiffHours, getDayNext, getDayStart, getMonthNext, getMonthStart, getYearNext, getYearStart } from '../types/date.functions';
 
 @Controller('statistics')
-export class ComputerController {
+export class StatisticsController {
   constructor(
     private readonly computerService: ComputerService,
     private readonly logWindowsService: LogWindowsService,
@@ -134,6 +134,10 @@ export class ComputerController {
     if(computer == null) {
         computer = await this.computerService.create(computerOptions);
     }
+    //console.log(computer);
+
+    // console.log(packet);
+    // console.log(computer);
 
     //запись в таблицу логов
     const logWindowsOptions = {
@@ -153,17 +157,23 @@ export class ComputerController {
         loginId: packet.loginId,
     };
 
+    //console.log(periodComputerWorkOptions);
+
     let hours = 0;
     if(packet.type) {
         this.periodComputerWorkService.create(periodComputerWorkOptions);
     } else {
-        const periodComputerWorkService = await this.periodComputerWorkService.readOne(periodComputerWorkOptions);
-        const updatedComputerWork = await this.periodComputerWorkService.update(periodComputerWorkService.id, { dateEnd: packet.date });
+        const existingPeriodComputerWork = await this.periodComputerWorkService.readOne({
+            computerId: computer.id,
+            operatingSystem: packet.operatingSystem,
+            loginId: packet.loginId,
+        });
+        const updatedComputerWork = await this.periodComputerWorkService.update(existingPeriodComputerWork.id, { dateEnd: packet.date });
         hours = getDateDiffHours(updatedComputerWork.dateStart, updatedComputerWork.dateEnd);
     }
 
     //запись в таблицы времени работы по дням/неделям/месяцам/годам
-    const packetDate = packet.date;
+    const packetDate = new Date(packet.date);
     const startDayDate = getDayStart(packetDate);
     const startMonthDate = getMonthStart(packetDate);
     const startYearDate = getYearStart(packetDate);
@@ -190,6 +200,9 @@ export class ComputerController {
     let dayComputerWork = await this.dayComputerWorkService.readOne(dayComputerWorkOptions);
     let monthComputerWork = await this.monthComputerWorkService.readOne(monthComputerWorkOptions);
     let yearComputerWork = await this.yearComputerWorkService.readOne(yearComputerWorkOptions);
+    // console.log(dayComputerWork);
+    // console.log(monthComputerWork);
+    // console.log(yearComputerWork);
     if(packet.type) {
         if(dayComputerWork == null) {
             dayComputerWork = await this.dayComputerWorkService.create(dayComputerWorkOptions);
@@ -201,9 +214,13 @@ export class ComputerController {
             yearComputerWork = await this.yearComputerWorkService.create(yearComputerWorkOptions);
         }
     } else {
-        this.dayComputerWorkService.update(dayComputerWork.id, { hours: dayComputerWork.hours + hours });
-        this.monthComputerWorkService.update(monthComputerWork.id, { hours: monthComputerWork.hours + hours });
-        this.yearComputerWorkService.update(yearComputerWork.id, { hours: yearComputerWork.hours + hours });
+        console.log(dayComputerWork);
+        console.log(dayComputerWork.hours);
+        console.log(hours);
+        console.log(dayComputerWork.hours + hours);
+        await this.dayComputerWorkService.update(dayComputerWork.id, { hours: dayComputerWork.hours + hours });
+        await this.monthComputerWorkService.update(monthComputerWork.id, { hours: monthComputerWork.hours + hours });
+        await this.yearComputerWorkService.update(yearComputerWork.id, { hours: yearComputerWork.hours + hours });
     }
   }
 }

@@ -33,20 +33,12 @@ export class MonthComputerWorkController {
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async getOneByIdAction(@Param('id') id: number): Promise<MonthComputerWork> {
-    const monthComputerWork = await this.monthComputerWorkService.readById(id);
-    if( monthComputerWork === null ) {
-      throw new NotFoundException(`MonthComputerWork with id=${id} does not exist`);
-    }
-    return monthComputerWork;
+    return await this.monthComputerWorkService.readById(id);
   }
 
   @Post()
   @HttpCode(HttpStatus.OK)
   async createAction(@Body() monthComputerWork: CreateMonthComputerWorkDto): Promise<MonthComputerWork>{
-    const existingComputer = await this.computerService.readById(monthComputerWork.computerId);
-    if(existingComputer === null) {
-      throw new BadRequestException(`Computer with id=${monthComputerWork.computerId} does not exist`);
-    }
     return this.monthComputerWorkService.create(monthComputerWork);
   }
 
@@ -56,24 +48,12 @@ export class MonthComputerWorkController {
     @Param('id') id: number, 
     @Body() monthComputerWork: UpdateMonthComputerWorkDto
   ): Promise<MonthComputerWork> {
-      const existingMonthComputerWork = await this.monthComputerWorkService.readById(id);
-      if(existingMonthComputerWork === null) {
-        throw new NotFoundException(`MonthComputerWork with id=${id} does not exist`);
-      }
-      const existingComputer = await this.computerService.readById(monthComputerWork.computerId);
-      if(existingComputer === undefined) {
-        throw new BadRequestException(`Computer with id=${monthComputerWork.computerId} does not exist`);
-      }
       return this.monthComputerWorkService.update(id, monthComputerWork);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async deleteAction(@Param('id') id: number): Promise<void>{
-    const existingMonthComputerWork = await this.monthComputerWorkService.readById(id);
-    if(existingMonthComputerWork === null) {
-      throw new NotFoundException(`MonthComputerWork with id=${id} does not exist`);
-    }
     return this.monthComputerWorkService.delete(id);
   }
 }

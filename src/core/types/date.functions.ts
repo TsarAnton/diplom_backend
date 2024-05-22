@@ -10,7 +10,6 @@ export function getYearStart(date: Date): Date {
     return new Date(date.getFullYear(), 0, 1);
 }
 
-//шляпа, но мне подходит
 export function getDayNext(date: Date): Date {
     return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
 }

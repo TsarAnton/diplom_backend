@@ -31,20 +31,12 @@ export class ComputerController {
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   async getOneByIdAction(@Param('id') id: number): Promise<Computer> {
-    const computer = await this.computerService.readById(id);
-    if( computer === null ) {
-      throw new NotFoundException(`Computer with id=${id} does not exist`);
-    }
-    return computer;
+    return await this.computerService.readById(id);
   }
 
   @Post()
   @HttpCode(HttpStatus.OK)
   async createAction(@Body() computer: CreateComputerDto): Promise<Computer>{
-    const existingComputer = await this.computerService.readOne({ macAddress: computer.macAddress});
-    if(existingComputer) {
-      throw new BadRequestException(`Computer with mac-address ${computer.macAddress} already exist`);
-    }
     return this.computerService.create(computer);
   }
 
@@ -54,26 +46,12 @@ export class ComputerController {
     @Param('id') id: number, 
     @Body() computer: UpdateComputerDto
   ): Promise<Computer> {
-      const existingComputer = await this.computerService.readById(id);
-      if(existingComputer === null) {
-        throw new NotFoundException(`Computer with id=${id} does not exist`);
-      }
-      if(computer.macAddress) {
-        const existingComputers = await this.computerService.readAll({ filter: { macAddress: computer.macAddress } });
-        if(existingComputer && (existingComputers.length > 1 || existingComputers[0].id !== id)) {
-          throw new BadRequestException(`Computer with mac-address ${computer.macAddress} already exist`);
-        }
-      }
       return this.computerService.update(id, computer);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async deleteAction(@Param('id') id: number): Promise<void>{
-    const existingComputer = await this.computerService.readById(id);
-    if(existingComputer === null) {
-      throw new NotFoundException(`Computer with id=${id} does not exist`);
-    }
     return this.computerService.delete(id);
   }
 }

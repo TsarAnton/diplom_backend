@@ -16,6 +16,10 @@ export class ComputerService  {
 	public async create(
         createComputerDto: CreateComputerDto,
     ): Promise<Computer> {
+		const existingComputer = await this.readOne({ macAddress: createComputerDto.macAddress});
+    	if(existingComputer) {
+      		throw new BadRequestException(`Computer with mac-address ${existingComputer.macAddress} already exist`);
+    	}
         return this.computerRepository.save(createComputerDto);
 	}
 
@@ -66,7 +70,11 @@ export class ComputerService  {
 	public async readById(
         id: number,
     ): Promise<Computer> {
-		return this.computerRepository.findOneBy({ id });
+		const computer = await this.computerRepository.findOneBy({ id });
+		if( computer === null ) {
+			throw new NotFoundException(`Computer with id=${id} does not exist`);
+		}
+		return computer;
 	}
 
     public async readOne(
@@ -79,6 +87,16 @@ export class ComputerService  {
 		id: number,
 		updateComputerDto: UpdateComputerDto,
 	): Promise<Computer> {
+		const existingComputer = await this.readById(id);
+      	if(existingComputer === null) {
+        	throw new NotFoundException(`Computer with id=${id} does not exist`);
+      	}
+      	if(updateComputerDto.macAddress) {
+        	const existingComputers = await this.readAll({ filter: { macAddress: updateComputerDto.macAddress } });
+        	if(existingComputers.length !== 0 && (existingComputers.length > 1 || existingComputers[0].id != id)) {
+          		throw new BadRequestException(`Computer with mac-address ${updateComputerDto.macAddress} already exist`);
+        	}
+      	}
 		await this.computerRepository.update(id, updateComputerDto);
 		return this.readById(id);
 	}
@@ -86,6 +104,10 @@ export class ComputerService  {
 	public async delete(
         id: number,
     ): Promise<void> {
+		const existingComputer = await this.readById(id);
+    	if(existingComputer === null) {
+      		throw new NotFoundException(`Computer with id=${id} does not exist`);
+    	}
 		await this.computerRepository.softDelete(id);
 	}
 }

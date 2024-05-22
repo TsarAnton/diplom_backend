@@ -21,6 +21,9 @@ export class YearComputerWorkService  {
     ): Promise<YearComputerWork> {
 		const { computerId, ...properties } = createYearComputerWorkDto;
 		const computer = await this.computerService.readById(computerId);
+    	if(computer === null) {
+      		throw new BadRequestException(`Computer with id=${computerId} does not exist`);
+    	}
 		const yearComputerWork = { computer, ...properties };
         return this.yearComputerWorkRepository.save(yearComputerWork);
 	}
@@ -86,29 +89,57 @@ export class YearComputerWorkService  {
 	public async readById(
         id: number,
     ): Promise<YearComputerWork> {
-		return this.yearComputerWorkRepository.findOneBy({ id });
+		const yearComputerWork = await this.yearComputerWorkRepository.findOneBy({ id });
+		if( yearComputerWork === null ) {
+			throw new NotFoundException(`YearComputerWork with id=${id} does not exist`);
+		}
+		return yearComputerWork;
 	}
 
     public async readOne(
         readYearComputerWorkDto: ReadYearComputerWorkDto,
     ): Promise<YearComputerWork> {
-        return this.yearComputerWorkRepository.findOneBy({ ...readYearComputerWorkDto });
+		return await this.yearComputerWorkRepository.findOne({
+			select: ['id', 'computer', 'date', 'operatingSystem', 'hours'],
+			where: {
+				computer: await this.computerService.readById(readYearComputerWorkDto.computerId),
+				date: readYearComputerWorkDto.date,
+				operatingSystem: readYearComputerWorkDto.operatingSystem,
+			},
+			relations: ['computer'],
+		})
+        //return this.yearComputerWorkRepository.findOneBy({ ...readYearComputerWorkDto });
     }
 
 	public async update(
 		id: number,
 		updateYearComputerWorkDto: UpdateYearComputerWorkDto,
 	): Promise<YearComputerWork> {
+		const existingYearComputerWork = await this.readById(id);
+      	if(existingYearComputerWork === null) {
+        	throw new NotFoundException(`YearComputerWork with id=${id} does not exist`);
+      	}
 		const { computerId, ...properties } = updateYearComputerWorkDto;
-		const computer = await this.computerService.readById(computerId);
-		const yearComputerWork = { computer, ...properties };
-		//await this.yearComputerWorkRepository.update(id, yearComputerWork);
-		return (await this.yearComputerWorkRepository.update(id, yearComputerWork)).raw;
+		if(computerId) {
+			const computer = await this.computerService.readById(computerId);
+			if(computer === undefined) {
+				throw new BadRequestException(`Computer with id=${computerId} does not exist`);
+			}
+			const yearComputerWork = { computer, ...properties };
+			await this.yearComputerWorkRepository.update(id, yearComputerWork);
+		} else {
+			await this.yearComputerWorkRepository.update(id, { ...properties });
+		}
+		return this.readById(id);
 	}
 
 	public async delete(
         id: number,
     ): Promise<void> {
+		const existingYearComputerWork = await this.readById(id);
+    	if(existingYearComputerWork === null) {
+      		throw new NotFoundException(`YearComputerWork with id=${id} does not exist`);
+    	}
 		await this.yearComputerWorkRepository.softDelete(id);
 	}
 

@@ -22,6 +22,9 @@ export class DayComputerWorkService  {
     ): Promise<DayComputerWork> {
 		const { computerId, ...properties } = createDayComputerWorkDto;
 		const computer = await this.computerService.readById(computerId);
+		if(computer === null) {
+			throw new BadRequestException(`Computer with id=${computerId} does not exist`);
+		}
 		const dayComputerWork = { computer, ...properties };
         return this.dayComputerWorkRepository.save(dayComputerWork);
 	}
@@ -87,29 +90,57 @@ export class DayComputerWorkService  {
 	public async readById(
         id: number,
     ): Promise<DayComputerWork> {
-		return this.dayComputerWorkRepository.findOneBy({ id });
+		const dayComputerWork = await this.dayComputerWorkRepository.findOneBy({ id });
+		if( dayComputerWork === null ) {
+			throw new NotFoundException(`DayComputerWork with id=${id} does not exist`);
+		}
+		return dayComputerWork;
 	}
 
     public async readOne(
         readDayComputerWorkDto: ReadDayComputerWorkDto,
     ): Promise<DayComputerWork> {
-        return this.dayComputerWorkRepository.findOneBy({ ...readDayComputerWorkDto });
+		return await this.dayComputerWorkRepository.findOne({
+			select: ['id', 'computer', 'date', 'operatingSystem', 'hours'],
+			where: {
+				computer: await this.computerService.readById(readDayComputerWorkDto.computerId),
+				date: readDayComputerWorkDto.date,
+				operatingSystem: readDayComputerWorkDto.operatingSystem,
+			},
+			relations: ['computer'],
+		})
+        //return this.dayComputerWorkRepository.findOneBy({ ...readDayComputerWorkDto });
     }
 
 	public async update(
 		id: number,
 		updateDayComputerWorkDto: UpdateDayComputerWorkDto,
 	): Promise<DayComputerWork> {
+		const existingDayComputerWork = await this.readById(id);
+      	if(existingDayComputerWork === null) {
+        	throw new NotFoundException(`DayComputerWork with id=${id} does not exist`);
+      	}
 		const { computerId, ...properties } = updateDayComputerWorkDto;
-		const computer = await this.computerService.readById(computerId);
-		const dayComputerWork = { computer, ...properties };
-		//await this.dayComputerWorkRepository.update(id, dayComputerWork);
-		return (await this.dayComputerWorkRepository.update(id, dayComputerWork)).raw;
+		if(computerId) {
+			const computer = await this.computerService.readById(computerId);
+			if(computer === null) {
+				throw new BadRequestException(`Computer with id=${computerId} does not exist`);
+			}
+			const dayComputerWork = { computer, ...properties };
+			await this.dayComputerWorkRepository.update(id, dayComputerWork);
+		} else {
+			await this.dayComputerWorkRepository.update(id, { ...properties });
+		}
+		return this.readById(id);
 	}
 
 	public async delete(
         id: number,
     ): Promise<void> {
+		const existingDayComputerWork = await this.readById(id);
+    	if(existingDayComputerWork === null) {
+      		throw new NotFoundException(`DayComputerWork with id=${id} does not exist`);
+    	}
 		await this.dayComputerWorkRepository.softDelete(id);
 	}
 

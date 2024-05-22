@@ -18,6 +18,10 @@ export class LogWindowsService  {
 	public async create(
         createLogWindowsDto: CreateLogWindowsDto,
     ): Promise<LogWindows> {
+		const existingComputer = await this.computerService.readById(createLogWindowsDto.computerId);
+    	if(existingComputer === null) {
+     		 throw new BadRequestException(`Computer with id=${createLogWindowsDto.computerId} does not exist`);
+    	}
 		const logWindowsEntity = await this.createLogWindowsEntityFromCreateDto(createLogWindowsDto);
         return this.logWindowsRepository.save(logWindowsEntity);
 	}
@@ -62,15 +66,9 @@ export class LogWindowsService  {
 				});
 			}
 			if(options.filter.computerIds) {
-				if(typeof options.filter.computerIds === "string") {
-					queryBuilder.andWhere('computer.id = :computerIds', {
-						computerIds: Number(options.filter.computerIds),
-					});
-				} else {
-					queryBuilder.andWhere('computer.id IN (:...computerIds)', {
-						computerIds: options.filter.computerIds.map(id => Number(id)),
-					});
-				}
+				queryBuilder.andWhere('computer.id IN (:...computers)', {
+					computers: options.filter.computerIds, //options.filter.computers.map(id => Number(id)),
+				});
 			}
 		}
 
@@ -88,7 +86,11 @@ export class LogWindowsService  {
 	public async readById(
         id: number,
     ): Promise<LogWindows> {
-		return this.logWindowsRepository.findOneBy({ id });
+		const logWindows = await this.logWindowsRepository.findOneBy({ id });
+		if( logWindows === null ) {
+			throw new NotFoundException(`LogWindows with id=${id} does not exist`);
+		}
+		return logWindows;
 	}
 
     public async readOne(
@@ -101,6 +103,16 @@ export class LogWindowsService  {
 		id: number,
 		updateLogWindowsDto: UpdateLogWindowsDto,
 	): Promise<LogWindows> {
+		const existingLogWindows = await this.readById(id);
+      	if(existingLogWindows === null) {
+        	throw new NotFoundException(`LogWindows with id=${id} does not exist`);
+      	}
+		if(updateLogWindowsDto.computerId) {
+      		const existingComputer = await this.computerService.readById(updateLogWindowsDto.computerId);
+      		if(existingComputer === undefined) {
+        		throw new BadRequestException(`Computer with id=${updateLogWindowsDto.computerId} does not exist`);
+      		}
+		}
 		const logWindowsEntity = await this.createLogWindowsEntityFromUpdateDto(updateLogWindowsDto, id);
 		await this.logWindowsRepository.update(id, logWindowsEntity);
 		return logWindowsEntity;
@@ -109,6 +121,10 @@ export class LogWindowsService  {
 	public async delete(
         id: number,
     ): Promise<void> {
+		const existingLogWindows = await this.readById(id);
+    	if(existingLogWindows === null) {
+      		throw new NotFoundException(`LogWindows with id=${id} does not exist`);
+    	}
 		await this.logWindowsRepository.softDelete(id);
 	}
 

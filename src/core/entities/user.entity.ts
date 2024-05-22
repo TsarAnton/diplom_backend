@@ -1,6 +1,7 @@
-import { Column, DeleteDateColumn, Entity, PrimaryGeneratedColumn, ManyToMany, JoinTable } from 'typeorm';
+import { Column, DeleteDateColumn, Entity, PrimaryGeneratedColumn, ManyToMany, JoinTable, OneToMany } from 'typeorm';
 
 import { Role } from './role.entity';
+import { UserRole } from './user-role.entity';
 
 @Entity({ name: 'user', engine: 'InnoDB' })
 export class User {
@@ -13,10 +14,14 @@ export class User {
     @Column({ length: 100 })
 	password: string;
 
-    @ManyToMany(() => Role)
-    @JoinTable()
-    roles: Role[];
+    @OneToMany(
+		() => UserRole,
+		userRole => userRole.user,
+	)
+	userRoles: UserRole[];
 
 	@DeleteDateColumn({ name: 'deleted_date', type: 'timestamp' })
 	deletedDate: Date;
+
+	roles: Role[];
 }

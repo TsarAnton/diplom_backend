@@ -6,22 +6,51 @@ import { User } from '../entities/user.entity';
 import { IUserOptions } from '../types/user.options';
 import { RoleService } from './role.service';
 import { CreateUserDto, UpdateUserDto, ReadUserDto } from '../dto/user.dto';
+import { UserRole } from '../entities/user-role.entity';
+import { Role } from '../entities/role.entity';
 
 @Injectable()
 export class UserService  {
 	constructor(
         @InjectRepository(User)
         private userRepository: Repository<User>,
+		@InjectRepository(UserRole)
+		private userRoleRepository: Repository<UserRole>,
         private roleService: RoleService,
     ) {}
 
 	public async create(
         createUserDto: CreateUserDto,
     ): Promise<User> {
-        const { roles, ...properties } = createUserDto;
-        const rolesEntities = await this.roleService.readAllByIds(roles);
-        const user = { ...properties, rolesEntities };
-        return this.userRepository.save(user);
+		const existingUser = await this.readOne({ login: createUserDto.login});
+		let rolesEntities = [];
+    	if(existingUser) {
+      		throw new BadRequestException(`User with login ${createUserDto.login} already exist`);
+    	}
+    	let set = new Set();
+    	for(let role of createUserDto.roles) {
+      		if(set.has(role)) {
+       			throw new BadRequestException(`Role with id=${role} appears 2 or more times`);
+      		} else {
+        		const existingRole = await this.roleService.readById(role);
+        		if(existingRole === null) {
+          			throw new NotFoundException(`Role with id=${role} does not exist`);
+        		}
+				rolesEntities.push(existingRole);
+      		}
+    	}
+        const { roles, ...user } = createUserDto;
+        const createdUser = await this.userRepository.save(user);
+		createdUser.roles = rolesEntities;
+		await this.userRepository.createQueryBuilder()
+			.insert()
+			.into(UserRole)
+			.values(rolesEntities.map(el => ({
+				user: createdUser,
+				role: el
+			})))
+			.execute();
+		return createdUser;
 	}
 
 	public async readAll(
@@ -40,17 +69,6 @@ export class UserService  {
 					login: options.filter.login,
 				});
 			}
-			if(options.filter.roles) {
-				// if(typeof options.filter.roles === "string") {
-				// 	queryBuilder.andWhere('computer.id = :roles', {
-				// 		roles: Number(options.filter.roles),
-				// 	});
-				// } else {
-					queryBuilder.andWhere('computer.id IN (:...roles)', {
-						roles: options.filter.roles, //options.filter.roles.map(id => Number(id)),
-					});
-				// }
-			}
 		}
 
 		if(options.sorting) {
@@ -67,7 +85,11 @@ export class UserService  {
 	public async readById(
         id: number,
     ): Promise<User> {
-		return this.userRepository.findOneBy({ id });
+		const user = await this.userRepository.findOneBy({ id });
+		if( user === null ) {
+			throw new NotFoundException(`User with id=${id} does not exist`);
+		}
+		return user;
 	}
 
     public async readOne(
@@ -80,16 +102,102 @@ export class UserService  {
 		id: number,
 		updateUserDto: UpdateUserDto,
 	): Promise<User> {
-        const {roles, ...properties } = updateUserDto;
-        const rolesEntities = await this.roleService.readAllByIds(roles);
-        const user = { rolesEntities, ...properties };
+		const existingUser = await this.readById(id);
+      	if(existingUser === null) {
+        	throw new NotFoundException(`User with id=${id} does not exist`);
+      	}
+      	if(updateUserDto.login) {
+        	const existingUsers = await this.readAll({ filter: { login: updateUserDto.login } });
+       		if(existingUsers.length !== 0 && (existingUsers.length > 1 || existingUsers[0].id != id)) {
+         		throw new BadRequestException(`User with login ${updateUserDto.login} already exist`);
+        	}
+      	}
+      	const userRoles = (await this.readUserRoles(id)).map(el => el.id);
+      	let set = new Set();
+      	for(let role of updateUserDto.deletedRoles) {
+        	if(set.has(role)) {
+          		throw new BadRequestException(`Role with id=${role} appears 2 or more times`);
+        	} else {
+          		const existingRole = await this.roleService.readById(role);
+          		if(existingRole === null) {
+            		throw new NotFoundException(`Role with id=${role} does not exist`);
+          		}
+          		if(!userRoles.includes(role)) {
+            		throw new BadRequestException(`User with id=${id} does not have role with id=${role}`);
+          		}
+        	}
+      	}
+      	for(let role of updateUserDto.addedRoles) {
+        	if(set.has(role)) {
+        		throw new BadRequestException(`Role with id=${role} appears 2 or more times`);
+        	} else {
+          		const existingRole = await this.roleService.readById(role);
+          		if(existingRole === null) {
+            		throw new NotFoundException(`Role with id=${role} does not exist`);
+          		}
+          		if(userRoles.includes(role)) {
+            		throw new BadRequestException(`User with id=${id} already has role with id=${role}`);
+          		}
+        	}
+      	}
+        const {addedRoles, deletedRoles , ...user } = updateUserDto;
+
 		await this.userRepository.update(id, user);
-		return this.readById(id);
+		const updatedUser = await this.readById(id);
+
+		await this.userRoleRepository.createQueryBuilder()
+			.softDelete()
+			.where("role_id IN (:...roles)", {
+				roles: deletedRoles,
+			})
+			.andWhere("user_id = :userId", {
+				userId: id,
+			})
+			.execute()
+
+		await this.userRepository.createQueryBuilder()
+			.insert()
+			.into(UserRole)
+			.values((await this.roleService.readAllByIds(addedRoles)).map(el => ({
+				user: updatedUser,
+				role: el
+			})))
+			.execute();
+		updatedUser.roles = await this.readUserRoles(id);
+		return updatedUser;
 	}
 
 	public async delete(
         id: number,
     ): Promise<void> {
+		const existingUser = await this.readById(id);
+    	if(existingUser === null) {
+      		throw new NotFoundException(`User with id=${id} does not exist`);
+    	}
+		await this.userRoleRepository.createQueryBuilder()
+			.softDelete()
+			.where("user_id = :userId", {
+				userId: id
+			})
+			.andWhere("role_id IN (:...roles)", {
+				roles: (await this.readUserRoles(id)).map(el => el.id),
+			})
+			.execute();
 		await this.userRepository.softDelete(id);
+	}
+
+	public async readUserRoles(
+		id: number,
+	): Promise<Role[]> {
+		const userRolesEntities = await this.userRoleRepository.find({
+			select: ['role'],
+			where: {
+				user: await this.readById(id),
+			},
+			relations: ['role'],
+		})
+		console.log(userRolesEntities)
+		
+		return await this.roleService.readAllByIds(userRolesEntities.map(el => el.role.id));
 	}
 }

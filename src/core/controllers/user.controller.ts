@@ -2,11 +2,13 @@ import { Controller, Get, Post, Delete, Param, Body, Put, NotFoundException, Bad
 import { User } from '../entities/user.entity';
 import { UserService } from '../services/user.service';
 import { CreateUserDto, UpdateUserDto, ReadAllUserDto, ReadUserDto } from '../dto/user.dto';
+import { RoleService } from '../services/role.service';
 
 @Controller('users')
 export class UserController {
   constructor(
     private readonly userService: UserService,
+    private readonly roleService: RoleService,
     ){
   }
 
@@ -32,19 +34,12 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   async getOneByIdAction(@Param('id') id: number): Promise<User> {
     const user = await this.userService.readById(id);
-    if( user === null ) {
-      throw new NotFoundException(`User with id=${id} does not exist`);
-    }
     return user;
   }
 
   @Post()
   @HttpCode(HttpStatus.OK)
   async createAction(@Body() user: CreateUserDto): Promise<User>{
-    const existingUser = await this.userService.readOne({ login: user.login});
-    if(existingUser) {
-      throw new BadRequestException(`User with login ${user.login} already exist`);
-    }
     return this.userService.create(user);
   }
 
@@ -54,26 +49,12 @@ export class UserController {
     @Param('id') id: number, 
     @Body() user: UpdateUserDto
   ): Promise<User> {
-      const existingUser = await this.userService.readById(id);
-      if(existingUser === null) {
-        throw new NotFoundException(`User with id=${id} does not exist`);
-      }
-      if(user.login) {
-        const existingUsers = await this.userService.readAll({ filter: { login: user.login } });
-        if(existingUser && (existingUsers.length > 1 || existingUsers[0].id !== id)) {
-          throw new BadRequestException(`User with login ${user.login} already exist`);
-        }
-      }
       return this.userService.update(id, user);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.OK)
   async deleteAction(@Param('id') id: number): Promise<void>{
-    const existingUser = await this.userService.readById(id);
-    if(existingUser === null) {
-      throw new NotFoundException(`User with id=${id} does not exist`);
-    }
     return this.userService.delete(id);
   }
 }

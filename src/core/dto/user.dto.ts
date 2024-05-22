@@ -29,6 +29,7 @@ export class CreateUserDto {
     @IsDefined()
 	@IsArray()
 	@IsInt({ each: true })
+	@Transform(roles => Array(roles).map(id => Number(id)))
     roles: number[];
 }
 
@@ -43,11 +44,19 @@ export class UpdateUserDto {
 	@IsString()
     password?: string;
 
+	@IsNotEmpty()
+    @IsOptional()
+	@IsArray()
+	@IsInt({ each: true })
+	@Transform(deletedRoles => Array(deletedRoles).map(id => Number(id)))
+    deletedRoles: number[];
+
     @IsNotEmpty()
     @IsOptional()
 	@IsArray()
 	@IsInt({ each: true })
-    roles: number[];
+	@Transform(addedRoles => Array(addedRoles).map(id => Number(id)))
+    addedRoles: number[];
 }
 
 export class ReadUserDto {
@@ -84,11 +93,4 @@ export class ReadAllUserDto {
 	@MaxLength(50)
 	@IsString()
     public login?: string;
-
-    @IsNotEmpty()
-    @IsOptional()
-	@IsArray()
-	@IsInt({ each: true })
-    @Transform(roles => Array(roles).map(id => Number(id)))
-    roles: number[];
 }

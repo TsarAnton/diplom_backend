@@ -11,7 +11,7 @@ export function getYearStart(date: Date): Date {
 }
 
 export function getDayNext(date: Date): Date {
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1);
+    return new Date(getDayStart(date).getTime() + 86400000);
 }
 
 export function getMonthNext(date: Date): Date {

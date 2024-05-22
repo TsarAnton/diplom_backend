@@ -134,10 +134,6 @@ export class StatisticsController {
     if(computer == null) {
         computer = await this.computerService.create(computerOptions);
     }
-    //console.log(computer);
-
-    // console.log(packet);
-    // console.log(computer);
 
     //запись в таблицу логов
     const logWindowsOptions = {
@@ -157,11 +153,16 @@ export class StatisticsController {
         loginId: packet.loginId,
     };
 
-    //console.log(periodComputerWorkOptions);
+    let dayHours = [];
+    let monthHours = [];
+    let yearHours = [];
 
-    let hours = 0;
     if(packet.type) {
-        this.periodComputerWorkService.create(periodComputerWorkOptions);
+        const createdPeriodComputerWork = await this.periodComputerWorkService.create(periodComputerWorkOptions);
+        const dateStart = new Date(createdPeriodComputerWork.dateStart);
+        dayHours.push({ day: getDayStart(dateStart), hours: 0 });
+        monthHours.push({ month: getMonthStart(dateStart), hours: 0 });
+        yearHours.push({ year: getYearStart(dateStart), hours: 0 });
     } else {
         const existingPeriodComputerWork = await this.periodComputerWorkService.readOne({
             computerId: computer.id,
@@ -169,58 +170,98 @@ export class StatisticsController {
             loginId: packet.loginId,
         });
         const updatedComputerWork = await this.periodComputerWorkService.update(existingPeriodComputerWork.id, { dateEnd: packet.date });
-        hours = getDateDiffHours(updatedComputerWork.dateStart, updatedComputerWork.dateEnd);
+        const dateStart = new Date(updatedComputerWork.dateStart);
+        const dateEnd = new Date(updatedComputerWork.dateEnd);
+        if(getDayStart(dateStart).getTime() !== getDayStart(dateEnd).getTime()) {
+            let currentDay = dateStart;
+            let nextDay = getDayNext(dateStart);
+            while(nextDay < dateEnd) {
+                dayHours.push({ hours: getDateDiffHours(currentDay, nextDay), day: getDayStart(currentDay) });
+                currentDay = nextDay;
+                nextDay = getDayNext(currentDay);
+            }
+            dayHours.push({ hours: getDateDiffHours(currentDay, dateEnd), day: currentDay });
+        } else {
+            dayHours.push({ hours: getDateDiffHours(dateStart, dateEnd), day: getDayStart(dateStart) });
+        }
+        if(getMonthStart(dateStart).getTime() !== getMonthStart(dateEnd).getTime()) {
+            let currentMonth = dateStart;
+            let nextMonth = getMonthNext(dateStart);
+            while(nextMonth < dateEnd) {
+                monthHours.push({ hours: getDateDiffHours(currentMonth, nextMonth), month: getMonthStart(currentMonth) });
+                currentMonth = nextMonth;
+                nextMonth = getMonthNext(currentMonth);
+            }
+            monthHours.push({ hours: getDateDiffHours(currentMonth, dateEnd), month: currentMonth });
+        } else {
+            monthHours.push({ hours: getDateDiffHours(dateStart, dateEnd), month: getMonthStart(dateStart) });
+        }
+        if(getYearStart(dateStart).getTime() !== getYearStart(dateEnd).getTime()) {
+            let currentYear = dateStart;
+            let nextYear = getYearNext(dateStart);
+            while(nextYear < dateEnd) {
+                yearHours.push({ hours: getDateDiffHours(currentYear, nextYear), year: getYearStart(currentYear) });
+                currentYear = nextYear;
+                nextYear = getYearNext(currentYear);
+            }
+            yearHours.push({ hours: getDateDiffHours(currentYear, dateEnd), year: currentYear });
+        } else {
+            yearHours.push({ hours: getDateDiffHours(dateStart, dateEnd), year: getYearStart(dateStart) });
+        }
+        //hours = getDateDiffHours(updatedComputerWork.dateStart, updatedComputerWork.dateEnd);
     }
 
     //запись в таблицы времени работы по дням/неделям/месяцам/годам
-    const packetDate = new Date(packet.date);
-    const startDayDate = getDayStart(packetDate);
-    const startMonthDate = getMonthStart(packetDate);
-    const startYearDate = getYearStart(packetDate);
-
-    const dayComputerWorkOptions = {
-        date: startDayDate,
-        computerId: computer.id,
-        operatingSystem: packet.operatingSystem,
-        hours: hours,
-    }
-    const monthComputerWorkOptions = {
-        date: startMonthDate,
-        computerId: computer.id,
-        operatingSystem: packet.operatingSystem,
-        hours: hours,
-    }
-    const yearComputerWorkOptions = {
-        date: startYearDate,
-        computerId: computer.id,
-        operatingSystem: packet.operatingSystem,
-        hours: hours,
-    }
-
-    let dayComputerWork = await this.dayComputerWorkService.readOne(dayComputerWorkOptions);
-    let monthComputerWork = await this.monthComputerWorkService.readOne(monthComputerWorkOptions);
-    let yearComputerWork = await this.yearComputerWorkService.readOne(yearComputerWorkOptions);
-    // console.log(dayComputerWork);
-    // console.log(monthComputerWork);
-    // console.log(yearComputerWork);
-    if(packet.type) {
+    for(let el of dayHours) {
+        const dayComputerWorkOptions = {
+            date: el.day,
+            computerId: computer.id,
+            operatingSystem: packet.operatingSystem,
+        }
+        let dayComputerWork = await this.dayComputerWorkService.readOne(dayComputerWorkOptions);
         if(dayComputerWork == null) {
-            dayComputerWork = await this.dayComputerWorkService.create(dayComputerWorkOptions);
+            dayComputerWork = await this.dayComputerWorkService.create({
+                hours: 0,
+                ...dayComputerWorkOptions,
+            });
         }
+        if(!packet.type) {
+            await this.dayComputerWorkService.update(dayComputerWork.id, { hours: dayComputerWork.hours + el.hours });
+        }
+    }
+    for(let el of monthHours) {
+        const monthComputerWorkOptions = {
+            date: el.month,
+            computerId: computer.id,
+            operatingSystem: packet.operatingSystem,
+        }
+        let monthComputerWork = await this.monthComputerWorkService.readOne(monthComputerWorkOptions);
         if(monthComputerWork == null) {
-            monthComputerWork = await this.monthComputerWorkService.create(monthComputerWorkOptions);
+            monthComputerWork = await this.monthComputerWorkService.create({
+                hours: 0,
+                ...monthComputerWorkOptions,
+            });
         }
+        if(!packet.type) {
+            await this.monthComputerWorkService.update(monthComputerWork.id, { hours: monthComputerWork.hours + el.hours });
+        }
+    }
+    for(let el of yearHours) {
+        const yearComputerWorkOptions = {
+            date: el.year,
+            computerId: computer.id,
+            operatingSystem: packet.operatingSystem,
+        }
+        let yearComputerWork = await this.yearComputerWorkService.readOne(yearComputerWorkOptions);
         if(yearComputerWork == null) {
-            yearComputerWork = await this.yearComputerWorkService.create(yearComputerWorkOptions);
+            yearComputerWork = await this.yearComputerWorkService.create({
+                hours: 0,
+                ...yearComputerWorkOptions,
+            });
         }
-    } else {
-        console.log(dayComputerWork);
-        console.log(dayComputerWork.hours);
-        console.log(hours);
-        console.log(dayComputerWork.hours + hours);
-        await this.dayComputerWorkService.update(dayComputerWork.id, { hours: dayComputerWork.hours + hours });
-        await this.monthComputerWorkService.update(monthComputerWork.id, { hours: monthComputerWork.hours + hours });
-        await this.yearComputerWorkService.update(yearComputerWork.id, { hours: yearComputerWork.hours + hours });
+        if(!packet.type) {
+            await this.yearComputerWorkService.update(yearComputerWork.id, { hours: yearComputerWork.hours + el.hours });
+        }
     }
   }
 }

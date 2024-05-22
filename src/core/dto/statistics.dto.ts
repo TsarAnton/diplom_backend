@@ -55,12 +55,11 @@ export class CreateStatisticsDto {
 }
 
 export class ReadStatisticsDto {
-	@IsNotEmpty()
-	@IsDefined()
+	@IsOptional()
 	@IsArray()
 	@IsInt({ each: true })
 	@Transform(computers => Array(computers).map(id => Number(id)))
-	computers: number[];
+	computers?: number[];
 
 	@IsNotEmpty()
 	@IsDate()
@@ -69,4 +68,9 @@ export class ReadStatisticsDto {
 	@IsNotEmpty()
 	@IsDate()
     dateEnd: Date;
+
+	@IsOptional()
+	@IsString()
+    @MaxLength(50)
+    operatingSystem?: string;
 }

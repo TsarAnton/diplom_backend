@@ -69,9 +69,15 @@ export class PeriodComputerWorkService  {
 				});
 			}
 			if(options.filter.computers) {
-				queryBuilder.andWhere('computer.id IN (:...computers)', {
-					computers: options.filter.computers, //options.filter.computers.map(id => Number(id)),
-				});
+				if(typeof options.filter.computers === "string") {
+					queryBuilder.andWhere('computer.id = :computers', {
+						computers: Number(options.filter.computers),
+					});
+				} else {
+					queryBuilder.andWhere('computer.id IN (:...computers)', {
+						computers: options.filter.computers, //options.filter.computers.map(id => Number(id)),
+					});
+				}
 			}
 		}
 
@@ -150,11 +156,10 @@ export class PeriodComputerWorkService  {
 	public async readWorkPeriods(
         readStatisticsDto: ReadStatisticsDto,
     ): Promise<StatisticsPeriod> {
-
 		const queryBuilder = this.periodComputerWorkRepository.createQueryBuilder();
 
 		queryBuilder
-			.select(['periodComputerWork.computerId', 'periodComputerWork.dateStart', 'periodComputerWork.dateEnd'])
+			.select(['periodComputerWork.id', 'periodComputerWork.dateStart', 'periodComputerWork.dateEnd', 'periodComputerWork.loginId', 'periodComputerWork.operatingSystem'])
 			.from(PeriodComputerWork, 'periodComputerWork')
             .leftJoin('periodComputerWork.computer', 'computer')
             .addSelect([
@@ -164,43 +169,70 @@ export class PeriodComputerWorkService  {
                 'computer.macAddress',
                 'computer.audince',
             ])
-			.andWhere('computer.id IN (:...computers)', {
-				computers: readStatisticsDto.computers,
-			})
-			.andWhere('periodComputerWork.startDate >= :dateStart', {
+			.where('(periodComputerWork.dateStart >= :dateStart OR periodComputerWork.dateEnd <= :dateEnd)', {
 				dateStart: readStatisticsDto.dateStart,
-			})
-			.andWhere('periodComputerWork.dateEnd IS NOT NULL')
-			.orderBy('computer.id', 'ASC');
-		
+				dateEnd: readStatisticsDto.dateEnd
+			});
+
+        if (readStatisticsDto.operatingSystem) {
+			queryBuilder.andWhere('periodComputerWork.operatingSystem = :operatingSystem', {
+				operatingSystem: readStatisticsDto.operatingSystem,
+			});
+		}
+		if(readStatisticsDto.computers.length !== 0) {
+			queryBuilder.andWhere('computer.id IN (:...computers)', {
+				computers: readStatisticsDto.computers,
+			});
+		}
+
+		queryBuilder.orderBy('computer.id', 'ASC');
+
+		console.log(queryBuilder.getSql());
+
 		let computersArray = await queryBuilder.getMany();
 
 		if(computersArray.length === 0) {
 			return null;
 		}
 
+		const dateStart = new Date(readStatisticsDto.dateStart);
+		const dateEnd = new Date(readStatisticsDto.dateEnd);
+
 		let statisticsPeriod = new StatisticsPeriod();
-		statisticsPeriod.dateStart = readStatisticsDto.dateStart;
-		statisticsPeriod.dateEnd = readStatisticsDto.dateEnd;
+		statisticsPeriod.dateStart = dateStart;
+		statisticsPeriod.dateEnd = dateEnd;
+		statisticsPeriod.computers = [];
 
 		let statisticsPeriodMember = new StatisticsPeriodMember();
 		let currentComputerId = computersArray[0].computer.id;
 		statisticsPeriodMember.computer = computersArray[0].computer;
+		statisticsPeriodMember.periods = [];
 
 		for(let el of computersArray) {
-			if(el.dateEnd.getTime() > readStatisticsDto.dateEnd.getTime()) {
+			if((new Date(el.dateEnd)).getTime() > (new Date(readStatisticsDto.dateEnd)).getTime()) {
 				el.dateEnd = readStatisticsDto.dateEnd;
+			}
+			if((new Date(el.dateStart)).getTime() < (new Date(readStatisticsDto.dateStart)).getTime()) {
+				el.dateStart = readStatisticsDto.dateStart;
 			}
 			if(el.computer.id !== currentComputerId) {
 				statisticsPeriod.computers.push(statisticsPeriodMember);
+
+				statisticsPeriodMember = new StatisticsPeriodMember();
 				statisticsPeriodMember.computer = el.computer;
+				statisticsPeriodMember.periods = [];
+
+				currentComputerId = el.computer.id;
+				
 			}
 			statisticsPeriodMember.periods.push({ 
 				dateStart: el.dateStart, 
 				dateEnd: el.dateEnd, 
-				hours: getDateDiffHours(el.dateStart, el.dateEnd),
+				hours: getDateDiffHours(new Date(el.dateStart), new Date(el.dateEnd)),
 			});
 		}
+		statisticsPeriod.computers.push(statisticsPeriodMember);
+
 		return statisticsPeriod;
 	}
 }

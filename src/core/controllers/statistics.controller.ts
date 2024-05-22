@@ -25,20 +25,42 @@ export class StatisticsController {
   @Get('/periods')
   @HttpCode(HttpStatus.OK)
   getPeriodsAction(@Query() readStatisticsDto: ReadStatisticsDto): Promise<StatisticsPeriod> {
-    return this.periodComputerWorkService.readWorkPeriods(readStatisticsDto);
+    const { computers, ...properties } = readStatisticsDto;
+    let computersArray = [];
+    if(computers) {
+        if(typeof computers === "string") {
+            computersArray.push(Number(computers));
+        } else {
+            computersArray = computers.map(id => Number(id));
+        }
+    }
+    return this.periodComputerWorkService.readWorkPeriods({
+        computers: computersArray,
+        ...properties,
+    });
   }
 
   @Get('/hours')
   @HttpCode(HttpStatus.OK)
   async getHoursAction(@Query() readStatisticsDto: ReadStatisticsDto): Promise<StatisticsHours> {
-    let { dateStart, dateEnd } = readStatisticsDto;
+    let computersArray = [];
+    if(readStatisticsDto.computers) {
+        if(typeof readStatisticsDto.computers === "string") {
+            computersArray.push(Number(readStatisticsDto.computers));
+        } else {
+            computersArray = readStatisticsDto.computers.map(id => Number(id));
+        }
+    }
+
+    let dateStart = new Date(readStatisticsDto.dateStart);
+    let dateEnd = new Date(readStatisticsDto.dateEnd)
 
     let datesYear = [];
     let datesMonth = [];
     let datesDay = [dateStart];
 
     let nextYear = getYearNext(dateStart);
-    while(nextYear.getTime() < dateEnd.getTime()) {
+    while(nextYear.getTime() <= dateEnd.getTime()) {
         datesYear.push(nextYear);
         nextYear = getYearNext(nextYear);
     }
@@ -47,7 +69,7 @@ export class StatisticsController {
     if(datesYear.length !== 0) {
         const currentYear = datesYear.pop()
         let currentMonth = currentYear;
-        while(currentMonth.getTime() < dateEnd.getTime()) {
+        while(currentMonth.getTime() <= dateEnd.getTime()) {
             datesMonth.push(currentMonth);
             currentMonth = getMonthNext(currentMonth);
         }
@@ -55,36 +77,38 @@ export class StatisticsController {
         if(datesMonth.length !== 0) {
             currentDay = datesMonth.pop();
         }
-        while(currentDay.getTime() < dateEnd.getTime()) {
+        while(currentDay.getTime() <= dateEnd.getTime()) {
             datesDay.push(currentDay);
             currentDay = getDayNext(currentDay);
         }
-        computersYearWork = await this.yearComputerWorkService.readWorkHours(datesYear, readStatisticsDto.computers);
+        if(datesYear.length !== 0) {
+            computersYearWork = await this.yearComputerWorkService.readWorkHours(datesYear, computersArray, readStatisticsDto.operatingSystem);
+        }
         dateEnd = getYearNext(dateStart);
     }
 
     //выбор часов работы по оставшимся месяцам
     let nextMonth = getMonthNext(dateStart);
-    while(nextMonth.getTime() < dateEnd.getTime()) {
+    while(nextMonth.getTime() <= dateEnd.getTime()) {
         datesMonth.push(nextMonth);
         nextMonth = getMonthNext(nextMonth);
     }
 
     let computersMonthWork = [];
     if(datesMonth.length !== 0) {
-        computersMonthWork = await this.monthComputerWorkService.readWorkHours(datesMonth, readStatisticsDto.computers);
+        computersMonthWork = await this.monthComputerWorkService.readWorkHours(datesMonth, computersArray, readStatisticsDto.operatingSystem);
         dateEnd = getMonthNext(dateStart);
     }
 
     let nextDay = getDayNext(dateStart);
-    while(nextDay.getTime() < dateEnd.getTime()) {
+    while(nextDay.getTime() <= dateEnd.getTime()) {
         datesDay.push(nextDay);
         nextDay = getDayNext(nextDay);
     }
 
     let computersDayWork = [];
     if(datesDay.length !== 0) {
-        computersDayWork = await this.dayComputerWorkService.readWorkHours(datesDay, readStatisticsDto.computers);
+        computersDayWork = await this.dayComputerWorkService.readWorkHours(datesDay, computersArray, readStatisticsDto.operatingSystem);
         dateEnd = getDayNext(dateStart);
     }
 

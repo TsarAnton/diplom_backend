@@ -66,9 +66,15 @@ export class LogWindowsService  {
 				});
 			}
 			if(options.filter.computerIds) {
-				queryBuilder.andWhere('computer.id IN (:...computers)', {
-					computers: options.filter.computerIds, //options.filter.computers.map(id => Number(id)),
-				});
+				if(typeof options.filter.computerIds === "string") {
+					queryBuilder.andWhere('computer.id = :computers', {
+						computers: Number(options.filter.computerIds),
+					});
+				} else {
+					queryBuilder.andWhere('computer.id IN (:...computers)', {
+						computers: options.filter.computerIds, //options.filter.computers.map(id => Number(id)),
+					});
+				}
 			}
 		}
 

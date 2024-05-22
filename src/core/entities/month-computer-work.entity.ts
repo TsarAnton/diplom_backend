@@ -10,7 +10,7 @@ export class MonthComputerWork {
 	@Column()
 	date: Date;
 
-    @Column()
+    @Column("decimal")
 	hours: number;
 
 	@Column()

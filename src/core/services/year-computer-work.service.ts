@@ -35,7 +35,7 @@ export class YearComputerWorkService  {
 		const queryBuilder = this.yearComputerWorkRepository.createQueryBuilder();
 
 		queryBuilder
-			.select(['yearComputerWork.id', 'yearComputerWork.date', 'yearComputerWork.computerId', 'yearComputerWork.hours', 'yearComputerWork.operatingSystem'])
+			.select(['yearComputerWork.id', 'yearComputerWork.date', 'yearComputerWork.operatingSystem'])
 			.from(YearComputerWork, 'yearComputerWork')
             .leftJoin('yearComputerWork.computer', 'computer')
             .addSelect([
@@ -52,26 +52,21 @@ export class YearComputerWorkService  {
 					date: options.filter.date,
 				});
 			}
-			if (options.filter.hours) {
-				queryBuilder.andWhere('yearComputerWork.hours = :hours', {
-					hours: options.filter.hours,
-				});
-			}
-			if (options.filter.operatingSystem) {
+            if (options.filter.operatingSystem) {
 				queryBuilder.andWhere('yearComputerWork.operatingSystem = :operatingSystem', {
 					operatingSystem: options.filter.operatingSystem,
 				});
 			}
 			if(options.filter.computers) {
-				// if(typeof options.filter.computers === "string") {
-				// 	queryBuilder.andWhere('computer.id = :computers', {
-				// 		computers: Number(options.filter.computers),
-				// 	});
-				// } else {
+				if(typeof options.filter.computers === "string") {
+					queryBuilder.andWhere('computer.id = :computers', {
+						computers: Number(options.filter.computers),
+					});
+				} else {
 					queryBuilder.andWhere('computer.id IN (:...computers)', {
 						computers: options.filter.computers, //options.filter.computers.map(id => Number(id)),
 					});
-				// }
+				}
 			}
 		}
 
@@ -146,12 +141,13 @@ export class YearComputerWorkService  {
 	public async readWorkHours(
         dates: Date[],
 		computerIds: number[],
+		operatingSystem: string,
     ): Promise<StatisticsHoursMember[]> {
 
 		const queryBuilder = this.yearComputerWorkRepository.createQueryBuilder();
 
 		queryBuilder
-			.select(['yearComputerWork.computerId', 'yearComputerWork.hours'])
+			.select('yearComputerWork.hours')
 			.from(YearComputerWork, 'yearComputerWork')
             .leftJoin('yearComputerWork.computer', 'computer')
             .addSelect([
@@ -161,21 +157,47 @@ export class YearComputerWorkService  {
                 'computer.macAddress',
                 'computer.audince',
             ])
-			.andWhere('computer.id IN (:...computers)', {
-				computers: computerIds,
-			})
-			.andWhere('yearComputerWork.date IN (:...dates)', {
+			.where('yearComputerWork.date IN (:...dates)', {
 				dates: dates,
-			})
-			.groupBy('yearComputerWork.computer');
-		
+			});
+
+            if (operatingSystem) {
+				queryBuilder.andWhere('yearComputerWork.operatingSystem = :operatingSystem', {
+					operatingSystem: operatingSystem,
+				});
+			}
+			if(computerIds.length !== 0) {
+				queryBuilder.andWhere('computer.id IN (:...computers)', {
+					computers: computerIds, //options.filter.computers.map(id => Number(id)),
+			});
+		}
+
+		queryBuilder.orderBy('computer.id', 'ASC');
+
 		const computersArray = await queryBuilder.getMany();
 
-		const computers = computersArray.map(el => ({
-			computer: el.computer,
-			hours: el.hours,
-		}))
+		if(computersArray.length === 0) {
+			return [];
+		}
 
-		return computers;
+		let currentComputerId = computersArray[0].computer.id;
+		let statisticsHoursMember = new StatisticsHoursMember();
+		statisticsHoursMember.computer = computersArray[0].computer;
+		statisticsHoursMember.hours = 0;
+
+		let result = [];
+
+		for(let el of computersArray) {
+			if(currentComputerId !== el.computer.id) {
+				result.push(statisticsHoursMember);
+				statisticsHoursMember = new StatisticsHoursMember();
+				statisticsHoursMember.computer = el.computer;
+				statisticsHoursMember.hours = 0;
+			}
+			statisticsHoursMember.hours += el.hours;
+		}
+		result.push(statisticsHoursMember);
+
+		return result;
 	}
 }

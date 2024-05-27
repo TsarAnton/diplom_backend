@@ -28,3 +28,7 @@ export function getYearNext(date: Date): Date {
 export function getDateDiffHours(dateStart: Date, dateEnd: Date): number {
     return (dateEnd.getTime() - dateStart.getTime()) / 3600000;
 }
+
+export function getDateDiff(date: Date, hours: number) {
+    return new Date(date.getTime() - hours * 3600000);
+}

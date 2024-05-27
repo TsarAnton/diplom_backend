@@ -8,7 +8,7 @@ import { DayComputerWorkService } from '../services/day-computer-work.service';
 import { MonthComputerWorkService } from '../services/month-computer-work.service';
 import { YearComputerWorkService } from '../services/year-computer-work.service';
 import { StatisticsHours, StatisticsPeriod } from '../types/statistics.options';
-import { getDateDiffHours, getDayNext, getDayStart, getMonthNext, getMonthStart, getYearNext, getYearStart } from '../types/date.functions';
+import { getDateDiff, getDateDiffHours, getDayNext, getDayStart, getMonthNext, getMonthStart, getYearNext, getYearStart } from '../types/date.functions';
 
 @Controller('statistics')
 export class StatisticsController {
@@ -152,22 +152,26 @@ export class StatisticsController {
         name: packet.computerName, 
         macAddress: packet.macAddress, 
         ipAddress: packet.ipAddress, 
-        audince: packet.audince,
+        //audince: packet.audince,
     };
     let computer = await this.computerService.readOne(computerOptions);
     if(computer == null) {
         computer = await this.computerService.create(computerOptions);
     }
 
+    const isWindows = packet.operatingSystem.includes("Windows");
+
+    if(isWindows) {
     //запись в таблицу логов
-    const logWindowsOptions = {
-        computerId: computer.id,
-        type: packet.type,
-        loginId: packet.loginId,
-        date: packet.date,
-        operatingSystem: packet.operatingSystem,
-    };
-    this.logWindowsService.create(logWindowsOptions);
+        const logWindowsOptions = {
+            computerId: computer.id,
+            type: packet.type,
+            loginId: packet.loginId,
+            date: packet.date,
+            operatingSystem: packet.operatingSystem,
+        };
+        this.logWindowsService.create(logWindowsOptions);
+    }
 
     //запись в таблицу периодов
     const periodComputerWorkOptions = {
@@ -188,14 +192,28 @@ export class StatisticsController {
         monthHours.push({ month: getMonthStart(dateStart), hours: 0 });
         yearHours.push({ year: getYearStart(dateStart), hours: 0 });
     } else {
-        const existingPeriodComputerWork = await this.periodComputerWorkService.readOne({
-            computerId: computer.id,
-            operatingSystem: packet.operatingSystem,
-            loginId: packet.loginId,
-        });
-        const updatedComputerWork = await this.periodComputerWorkService.update(existingPeriodComputerWork.id, { dateEnd: packet.date });
-        const dateStart = new Date(updatedComputerWork.dateStart);
-        const dateEnd = new Date(updatedComputerWork.dateEnd);
+        let dateStart = null;
+        let dateEnd = null;
+        if(isWindows) {
+            const existingPeriodComputerWork = await this.periodComputerWorkService.readOne({
+                computerId: computer.id,
+                operatingSystem: packet.operatingSystem,
+                loginId: packet.loginId,
+            });
+            const updatedComputerWork = await this.periodComputerWorkService.update(existingPeriodComputerWork.id, { dateEnd: packet.date });
+            dateStart = new Date(updatedComputerWork.dateStart);
+            dateEnd = new Date(updatedComputerWork.dateEnd);
+        } else {
+            dateStart = getDateDiff(new Date(packet.date), packet.time);
+            dateEnd = new Date(packet.date);
+            await this.periodComputerWorkService.create({
+                dateStart: dateStart,
+                dateEnd: dateEnd,
+                operatingSystem: packet.operatingSystem,
+                computerId: computer.id,
+                loginId: '0',
+            });
+        }
         if(getDayStart(dateStart).getTime() !== getDayStart(dateEnd).getTime()) {
             let currentDay = dateStart;
             let nextDay = getDayNext(dateStart);

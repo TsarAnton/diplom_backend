@@ -11,6 +11,8 @@ import {
 	IsObject,
 	ValidateNested,
     IsBoolean,
+	isDecimal,
+	IsDecimal,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -34,10 +36,14 @@ export class CreateStatisticsDto {
 	@IsString()
     ipAddress: string;
 
-    @IsNotEmpty()
+    @IsOptional()
 	@MaxLength(15)
 	@IsString()
-    loginId: string;
+    loginId?: string;
+
+	@IsOptional()
+	@IsDecimal()
+	time?: number;
 
     @IsNotEmpty()
 	@IsDate()

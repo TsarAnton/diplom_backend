@@ -9,6 +9,7 @@ export class AuthController {
     ) {}
 
   @Post('auth/login')
+  @HttpCode(HttpStatus.OK)
   async login(@Body() user: AuthDto) {
     const token = await this.authService.validateUser(user.login, user.password);
     if(token == null) {

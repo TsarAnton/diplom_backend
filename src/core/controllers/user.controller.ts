@@ -40,6 +40,8 @@ export class UserController {
   @Post()
   @HttpCode(HttpStatus.OK)
   async createAction(@Body() user: CreateUserDto): Promise<User>{
+    console.log("Create");
+    console.log(user);
     return this.userService.create(user);
   }
 

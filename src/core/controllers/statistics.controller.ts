@@ -147,6 +147,7 @@ export class StatisticsController {
   @Post()
   @HttpCode(HttpStatus.OK)
   async createStatisticsAction(@Body() packet: CreateStatisticsDto): Promise<void> {
+    console.log(packet);
     //получили компьютер, если такого нет - создали
     const computerOptions = { 
         name: packet.computerName, 

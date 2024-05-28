@@ -169,7 +169,8 @@ export class PeriodComputerWorkService  {
                 'computer.macAddress',
                 'computer.audince',
             ])
-			.where('(periodComputerWork.dateStart >= :dateStart OR periodComputerWork.dateEnd <= :dateEnd)', {
+			.where('periodComputerWork.dateEnd IS NOT NULL')
+			.andWhere('(periodComputerWork.dateStart >= :dateStart OR periodComputerWork.dateEnd <= :dateEnd)', {
 				dateStart: readStatisticsDto.dateStart,
 				dateEnd: readStatisticsDto.dateEnd
 			});

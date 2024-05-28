@@ -16,7 +16,7 @@ export class AuthService {
     }
     const result = {
       login: user.login,
-      roles: await this.userService.readUserRoles(user.id),
+      roles: (await this.userService.readUserRoles(user.id)).map(role => role.id),
     }
     return result;
   }

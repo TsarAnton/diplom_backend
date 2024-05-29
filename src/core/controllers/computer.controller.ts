@@ -50,7 +50,7 @@ export class ComputerController {
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   async deleteAction(@Param('id') id: number): Promise<void>{
     return this.computerService.delete(id);
   }

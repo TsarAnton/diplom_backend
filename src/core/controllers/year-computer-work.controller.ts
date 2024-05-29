@@ -53,7 +53,7 @@ export class YearComputerWorkController {
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.NO_CONTENT)
   async deleteAction(@Param('id') id: number): Promise<void>{
     return this.yearComputerWorkService.delete(id);
   }

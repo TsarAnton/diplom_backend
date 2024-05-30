@@ -2,19 +2,20 @@ import { Controller, Get, Post, Delete, Param, Body, Put, NotFoundException, Bad
 import { Computer } from '../entities/computer.entity';
 import { ComputerService } from '../services/computer.service';
 import { CreateStatisticsDto, ReadStatisticsDto } from '../dto/statistics.dto';
-import { LogWindowsService } from '../services/log-windows.service';
+import { LogService } from '../services/log.service';
 import { PeriodComputerWorkService } from '../services/period-computer-work.service';
 import { DayComputerWorkService } from '../services/day-computer-work.service';
 import { MonthComputerWorkService } from '../services/month-computer-work.service';
 import { YearComputerWorkService } from '../services/year-computer-work.service';
-import { StatisticsHours, StatisticsPeriod } from '../types/statistics.options';
+import { CreateStatisticsResult, StatisticsHours, StatisticsPeriod } from '../types/statistics.options';
 import { getDateDiff, getDateDiffHours, getDayNext, getDayStart, getMonthNext, getMonthStart, getYearNext, getYearStart } from '../types/date.functions';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('statistics')
 export class StatisticsController {
   constructor(
     private readonly computerService: ComputerService,
-    private readonly logWindowsService: LogWindowsService,
+    private readonly logService: LogService,
     private readonly periodComputerWorkService: PeriodComputerWorkService,
     private readonly dayComputerWorkService: DayComputerWorkService,
     private readonly monthComputerWorkService: MonthComputerWorkService,
@@ -22,6 +23,7 @@ export class StatisticsController {
     ){
   }
 
+  @UseGuards(AuthGuard("jwt"))
   @Get('/periods')
   @HttpCode(HttpStatus.OK)
   getPeriodsAction(@Query() readStatisticsDto: ReadStatisticsDto): Promise<StatisticsPeriod> {
@@ -40,6 +42,7 @@ export class StatisticsController {
     });
   }
 
+  @UseGuards(AuthGuard("jwt"))
   @Get('/hours')
   @HttpCode(HttpStatus.OK)
   async getHoursAction(@Query() readStatisticsDto: ReadStatisticsDto): Promise<StatisticsHours> {
@@ -146,7 +149,7 @@ export class StatisticsController {
 
   @Post()
   @HttpCode(HttpStatus.OK)
-  async createStatisticsAction(@Body() packet: CreateStatisticsDto): Promise<void> {
+  async createStatisticsAction(@Body() packet: CreateStatisticsDto): Promise<CreateStatisticsResult> {
     console.log(packet);
     //получили компьютер, если такого нет - создали
     const computerOptions = { 
@@ -164,14 +167,23 @@ export class StatisticsController {
 
     if(isWindows) {
     //запись в таблицу логов
-        const logWindowsOptions = {
+        const logOptions = {
             computerId: computer.id,
             type: packet.type,
             loginId: packet.loginId,
             date: packet.date,
             operatingSystem: packet.operatingSystem,
         };
-        this.logWindowsService.create(logWindowsOptions);
+        this.logService.create(logOptions);
+    } else {
+        const logOptions = {
+            computerId: computer.id,
+            type: packet.type,
+            loginId: "0",
+            date: packet.date,
+            operatingSystem: packet.operatingSystem,
+        };
+        this.logService.create(logOptions);
     }
 
     //запись в таблицу периодов
@@ -306,5 +318,6 @@ export class StatisticsController {
             await this.yearComputerWorkService.update(yearComputerWork.id, { hours: yearComputerWork.hours + el.hours });
         }
     }
+    return { status: "OK" };
   }
 }

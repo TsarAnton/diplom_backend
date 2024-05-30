@@ -1,22 +1,22 @@
 import { Controller, Get, Post, Delete, Param, Body, Put, NotFoundException, BadRequestException, HttpStatus, HttpCode, UseGuards, Query } from '@nestjs/common';
-import { LogWindows } from '../entities/log-windows.entity';
-import { LogWindowsService } from '../services/log-windows.service';
+import { Log } from '../entities/log.entity';
+import { LogService } from '../services/log.service';
 import { ComputerService } from '../services/computer.service';
-import { CreateLogWindowsDto, UpdateLogWindowsDto, ReadAllLogWindowsDto, ReadLogWindowsDto } from '../dto/log-windows.dto';
+import { CreateLogDto, UpdateLogDto, ReadAllLogDto, ReadLogDto } from '../dto/log.dto';
 
 @Controller('logsWindows')
-export class LogWindowsController {
+export class LogController {
   constructor(
-    private readonly logWindowsService: LogWindowsService,
+    private readonly logService: LogService,
     private readonly computerService: ComputerService,
     ){
   }
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  getAllAction(@Query() logWindowsOptions: ReadAllLogWindowsDto): Promise<LogWindows[]> {
-    const { pagination, sorting, ...filter } = logWindowsOptions;
-    return this.logWindowsService.readAll({
+  getAllAction(@Query() logOptions: ReadAllLogDto): Promise<Log[]> {
+    const { pagination, sorting, ...filter } = logOptions;
+    return this.logService.readAll({
       pagination,
       sorting,
       filter,
@@ -25,35 +25,35 @@ export class LogWindowsController {
 
   @Get('/getOne')
   @HttpCode(HttpStatus.OK)
-  getOneAction(@Query() readLogWindowsDto: ReadLogWindowsDto): Promise<LogWindows> {
-    return this.logWindowsService.readOne(readLogWindowsDto);
+  getOneAction(@Query() readLogDto: ReadLogDto): Promise<Log> {
+    return this.logService.readOne(readLogDto);
   }
 
 
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  async getOneByIdAction(@Param('id') id: number): Promise<LogWindows> {
-    return await this.logWindowsService.readById(id);
+  async getOneByIdAction(@Param('id') id: number): Promise<Log> {
+    return await this.logService.readById(id);
   }
 
   @Post()
   @HttpCode(HttpStatus.OK)
-  async createAction(@Body() logWindows: CreateLogWindowsDto): Promise<LogWindows>{
-    return this.logWindowsService.create(logWindows);
+  async createAction(@Body() log: CreateLogDto): Promise<Log>{
+    return this.logService.create(log);
   }
 
   @Put(':id')
   @HttpCode(HttpStatus.OK)
   async updateAction(
     @Param('id') id: number, 
-    @Body() logWindows: UpdateLogWindowsDto
-  ): Promise<LogWindows> {
-      return this.logWindowsService.update(id, logWindows);
+    @Body() log: UpdateLogDto
+  ): Promise<Log> {
+      return this.logService.update(id, log);
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteAction(@Param('id') id: number): Promise<void>{
-    return this.logWindowsService.delete(id);
+    return this.logService.delete(id);
   }
 }

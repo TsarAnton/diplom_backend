@@ -1,14 +1,14 @@
 import { Module } from '@nestjs/common';
 
 import { Computer } from './entities/computer.entity';
-import { LogWindows } from './entities/log-windows.entity';
+import { Log } from './entities/log.entity';
 import { MonthComputerWork } from './entities/month-computer-work.entity';
 
 import { ComputerService } from './services/computer.service';
-import { LogWindowsService } from './services/log-windows.service';
+import { LogService } from './services/log.service';
 
 import { ComputerController } from './controllers/computer.controller';
-import { LogWindowsController } from './controllers/log-windows.controller';
+import { LogController } from './controllers/log-windows.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DayComputerWorkController } from './controllers/day-computer-work.controller';
 import { MonthComputerWorkController } from './controllers/month-computer-work.controller';
@@ -29,12 +29,14 @@ import { PeriodComputerWorkService } from './services/period-computer-work.servi
 import { UserService } from './services/user.service';
 import { RoleService } from './services/role.service';
 import { UserRole } from './entities/user-role.entity';
+import { AuthModule } from 'src/auth/auth.module';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
 	imports: [
 		TypeOrmModule.forFeature([
 			Computer, 
-			LogWindows,
+			Log,
 			DayComputerWork,
 			MonthComputerWork,
 			YearComputerWork,
@@ -46,7 +48,7 @@ import { UserRole } from './entities/user-role.entity';
 	],
 	controllers: [
 		ComputerController,
-		LogWindowsController,
+		LogController,
 		DayComputerWorkController,
 		MonthComputerWorkController,
 		YearComputerWorkController,
@@ -57,17 +59,18 @@ import { UserRole } from './entities/user-role.entity';
 	],
 	providers: [
 		ComputerService,
-		LogWindowsService,
+		LogService,
 		DayComputerWorkService,
 		MonthComputerWorkService,
 		YearComputerWorkService,
 		PeriodComputerWorkService,
 		UserService,
 		RoleService,
+		JwtService,
 	],
 	exports: [
 		ComputerService,
-		LogWindowsService,
+		LogService,
 		DayComputerWorkService,
 		MonthComputerWorkService,
 		YearComputerWorkService,

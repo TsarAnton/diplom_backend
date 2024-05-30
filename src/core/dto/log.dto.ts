@@ -16,7 +16,7 @@ import { Type } from 'class-transformer';
 import { SortingDto } from './common/sorting.dto';
 import { PaginationDto } from './common/pagination.dto';
 
-export class CreateLogWindowsDto {
+export class CreateLogDto {
     @IsDefined()
 	@IsInt()
 	@Transform(computerId => Number(computerId))
@@ -42,7 +42,7 @@ export class CreateLogWindowsDto {
     date: Date;
 }
 
-export class UpdateLogWindowsDto {
+export class UpdateLogDto {
     @IsOptional()
 	@IsInt()
 	@Transform(computerId => Number(computerId))
@@ -68,7 +68,7 @@ export class UpdateLogWindowsDto {
     date?: Date;
 }
 
-export class ReadLogWindowsDto {
+export class ReadLogDto {
 	@IsOptional()
 	@IsInt()
 	@Transform(id => Number(id))
@@ -99,7 +99,7 @@ export class ReadLogWindowsDto {
     date?: Date;
 }
 
-export class ReadAllLogWindowsDto {
+export class ReadAllLogDto {
 	@IsOptional()
 	@IsObject()
 	@ValidateNested()

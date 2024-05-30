@@ -230,6 +230,7 @@ export class PeriodComputerWorkService  {
 				dateStart: el.dateStart, 
 				dateEnd: el.dateEnd, 
 				hours: getDateDiffHours(new Date(el.dateStart), new Date(el.dateEnd)),
+				operatingSystem: el.operatingSystem,
 			});
 		}
 		statisticsPeriod.computers.push(statisticsPeriodMember);

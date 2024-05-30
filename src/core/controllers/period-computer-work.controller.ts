@@ -3,7 +3,13 @@ import { PeriodComputerWork } from '../entities/period-computer-work.entity';
 import { PeriodComputerWorkService } from '../services/period-computer-work.service';
 import { ComputerService } from '../services/computer.service';
 import { CreatePeriodComputerWorkDto, UpdatePeriodComputerWorkDto, ReadAllPeriodComputerWorkDto, ReadPeriodComputerWorkDto } from '../dto/period-computer-work.dto';
+import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
+import { RolesGuard } from 'src/auth/services/roles.guard';
+import { AuthGuard } from '@nestjs/passport';
 
+@HasRoles("admin")
+@UseGuards(RolesGuard)
+@UseGuards(AuthGuard("jwt"))
 @Controller('periodComputersWork')
 export class PeriodComputerWorkController {
   constructor(

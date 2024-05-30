@@ -3,7 +3,13 @@ import { YearComputerWork } from '../entities/year-computer-work.entity';
 import { YearComputerWorkService } from '../services/year-computer-work.service';
 import { ComputerService } from '../services/computer.service';
 import { CreateYearComputerWorkDto, UpdateYearComputerWorkDto, ReadAllYearComputerWorkDto, ReadYearComputerWorkDto } from '../dto/year-computer-work.dto';
+import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
+import { RolesGuard } from 'src/auth/services/roles.guard';
+import { AuthGuard } from '@nestjs/passport';
 
+@HasRoles("admin")
+@UseGuards(RolesGuard)
+@UseGuards(AuthGuard("jwt"))
 @Controller('yearComputersWork')
 export class YearComputerWorkController {
   constructor(

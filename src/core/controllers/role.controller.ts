@@ -2,7 +2,13 @@ import { Controller, Get, Post, Delete, Param, Body, Put, NotFoundException, Bad
 import { Role } from '../entities/role.entity';
 import { RoleService } from '../services/role.service';
 import { CreateRoleDto, UpdateRoleDto, ReadAllRoleDto, ReadRoleDto } from '../dto/role.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { RolesGuard } from 'src/auth/services/roles.guard';
+import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
 
+@HasRoles("admin")
+@UseGuards(RolesGuard)
+@UseGuards(AuthGuard("jwt"))
 @Controller('roles')
 export class RoleController {
   constructor(

@@ -3,7 +3,13 @@ import { MonthComputerWork } from '../entities/month-computer-work.entity';
 import { MonthComputerWorkService } from '../services/month-computer-work.service';
 import { ComputerService } from '../services/computer.service';
 import { CreateMonthComputerWorkDto, UpdateMonthComputerWorkDto, ReadAllMonthComputerWorkDto, ReadMonthComputerWorkDto } from '../dto/month-computer-work.dto';
+import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
+import { RolesGuard } from 'src/auth/services/roles.guard';
+import { AuthGuard } from '@nestjs/passport';
 
+@HasRoles("admin")
+@UseGuards(RolesGuard)
+@UseGuards(AuthGuard("jwt"))
 @Controller('monthComputersWork')
 export class MonthComputerWorkController {
   constructor(

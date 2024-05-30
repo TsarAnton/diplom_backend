@@ -2,8 +2,8 @@ import { Column, DeleteDateColumn, Entity, PrimaryGeneratedColumn, ManyToOne, Jo
 
 import { Computer } from './computer.entity';
 
-@Entity({ name: 'log_windows', engine: 'InnoDB' })
-export class LogWindows {
+@Entity({ name: 'log', engine: 'InnoDB' })
+export class Log {
 	@PrimaryGeneratedColumn()
 	id: number;
 

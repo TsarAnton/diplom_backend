@@ -10,7 +10,9 @@ export class PeriodComputerWork {
 	@Column()
 	dateStart: Date;
 
-    @Column()
+    @Column({
+		nullable: true,
+	})
 	dateEnd: Date;
 
     @Column()

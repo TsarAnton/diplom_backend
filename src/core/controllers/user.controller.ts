@@ -3,7 +3,13 @@ import { User } from '../entities/user.entity';
 import { UserService } from '../services/user.service';
 import { CreateUserDto, UpdateUserDto, ReadAllUserDto, ReadUserDto } from '../dto/user.dto';
 import { RoleService } from '../services/role.service';
+import { AuthGuard } from '@nestjs/passport';
+import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
+import { RolesGuard } from 'src/auth/services/roles.guard';
 
+@HasRoles("admin")
+@UseGuards(RolesGuard)
+@UseGuards(AuthGuard("jwt"))
 @Controller('users')
 export class UserController {
   constructor(

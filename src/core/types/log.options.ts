@@ -1,7 +1,7 @@
 import { IPaginationOptions } from "./common/pagination-options";
 import { ISortingOptions } from "./common/sorting-options";
 
-export interface ILogWindowsOptions {
+export interface ILogOptions {
     filter?: {
         date?: Date;
         loginId?: string;

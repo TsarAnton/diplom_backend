@@ -3,7 +3,13 @@ import { DayComputerWork } from '../entities/day-computer-work.entity';
 import { DayComputerWorkService } from '../services/day-computer-work.service';
 import { ComputerService } from '../services/computer.service';
 import { CreateDayComputerWorkDto, UpdateDayComputerWorkDto, ReadAllDayComputerWorkDto, ReadDayComputerWorkDto } from '../dto/day-computer-work.dto';
+import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
+import { RolesGuard } from 'src/auth/services/roles.guard';
+import { AuthGuard } from '@nestjs/passport';
 
+@HasRoles("admin")
+@UseGuards(RolesGuard)
+@UseGuards(AuthGuard("jwt"))
 @Controller('dayComputersWork')
 export class DayComputerWorkController {
   constructor(

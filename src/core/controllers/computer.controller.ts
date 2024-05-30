@@ -2,7 +2,13 @@ import { Controller, Get, Post, Delete, Param, Body, Put, NotFoundException, Bad
 import { Computer } from '../entities/computer.entity';
 import { ComputerService } from '../services/computer.service';
 import { CreateComputerDto, UpdateComputerDto, ReadAllComputerDto, ReadComputerDto } from '../dto/computer.dto';
+import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
+import { RolesGuard } from 'src/auth/services/roles.guard';
+import { AuthGuard } from '@nestjs/passport';
 
+@HasRoles("admin")
+@UseGuards(RolesGuard)
+@UseGuards(AuthGuard("jwt"))
 @Controller('computers')
 export class ComputerController {
   constructor(

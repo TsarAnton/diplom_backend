@@ -1,6 +1,6 @@
 import { Column, DeleteDateColumn, Entity, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 
-import { LogWindows } from './log-windows.entity';
+import { Log } from './log.entity';
 import { DayComputerWork } from './day-computer-work.entity';
 import { MonthComputerWork } from './month-computer-work.entity';
 import { YearComputerWork } from './year-computer-work.entity';
@@ -20,14 +20,17 @@ export class Computer {
     @Column({ length: 15 })
 	ipAddress: string;    
 
-	@Column({ length: 20 })
+	@Column({ 
+		length: 20,
+		nullable: true,
+	 })
 	audince: string;    
 
 	@OneToMany(
-		() => LogWindows,
-		logWindows => logWindows.computer,
+		() => Log,
+		log => log.computer,
 	)
-	logsWindows: LogWindows[];
+	logsWindows: Log[];
 
 	@OneToMany(
 		() => DayComputerWork,

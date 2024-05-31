@@ -16,16 +16,22 @@ export class AuthService {
     }
 
     const result = {
+      id: user.id,
       login: user.login,
-      roles: (await this.userService.readUserRoles(user.id)).map(role => role.name),
+      roles: (await this.userService.readUserRoles(user.id)).map(role => ({
+          id: role.id,
+          name: role.name
+        })
+      ),
     }
     return result;
   }
 
   async login(user: any) {
     const payload = {
-        login: user.login,
-        roles: user.roles,
+      id: user.id,
+      login: user.login,
+      roles: user.roles,
     };
     return {
         access_token: this.JwtService.sign(payload),

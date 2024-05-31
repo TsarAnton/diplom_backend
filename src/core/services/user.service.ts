@@ -96,7 +96,8 @@ export class UserService  {
     public async readOne(
         readUserDto: ReadUserDto,
     ): Promise<User> {
-        return this.userRepository.findOneBy({ ...readUserDto });
+        const user = await this.userRepository.findOneBy({ ...readUserDto });
+		return user;
     }
 
 	public async update(
@@ -197,8 +198,15 @@ export class UserService  {
 			},
 			relations: ['role'],
 		})
-		console.log(userRolesEntities)
 		
 		return await this.roleService.readAllByIds(userRolesEntities.map(el => el.role.id));
+	}
+
+	public async readUserWithRoles(
+		id: number,
+	): Promise<User> {
+		let user = await this.readById(id);
+		user.roles = await this.readUserRoles(id);
+		return user;
 	}
 }

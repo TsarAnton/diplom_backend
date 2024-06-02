@@ -7,9 +7,9 @@ import { AuthGuard } from '@nestjs/passport';
 import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
 import { RolesGuard } from 'src/auth/services/roles.guard';
 
-@HasRoles("admin")
-@UseGuards(RolesGuard)
-@UseGuards(AuthGuard("jwt"))
+// @HasRoles("admin")
+// @UseGuards(RolesGuard)
+// @UseGuards(AuthGuard("jwt"))
 @Controller('users')
 export class UserController {
   constructor(
@@ -27,6 +27,12 @@ export class UserController {
       sorting,
       filter,
     });
+  }
+
+  @Get("/getManyWithRoles")
+  @HttpCode(HttpStatus.OK)
+  getAllWithRolesAction(@Query() userOptions: ReadAllUserDto): Promise<User[]> {
+    return this.userService.readAllWithRoles();
   }
 
   @Get('/getOne')

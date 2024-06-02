@@ -32,7 +32,12 @@ export class UserController {
   @Get("/getManyWithRoles")
   @HttpCode(HttpStatus.OK)
   getAllWithRolesAction(@Query() userOptions: ReadAllUserDto): Promise<User[]> {
-    return this.userService.readAllWithRoles();
+    const { pagination, sorting, ...filter } = userOptions;
+    return this.userService.readAllWithRoles({
+      pagination,
+      sorting,
+      filter,
+    });
   }
 
   @Get('/getOne')

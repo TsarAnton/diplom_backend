@@ -202,7 +202,9 @@ export class UserService  {
 		return await this.roleService.readAllByIds(userRolesEntities.map(el => el.role.id));
 	}
 
-	public async readAllWithRoles(): Promise<User[]> {
+	public async readAllWithRoles(
+		options: IUserOptions,
+	): Promise<User[]> {
 
 		const queryBuilder = this.userRepository.createQueryBuilder();
 
@@ -216,8 +218,23 @@ export class UserService  {
 				"userRole.role",
 				"role.id",
 				"role.name"
-			])
-			.orderBy("user.id", "ASC");
+			]);
+
+		if (options.filter) {
+			if (options.filter.login) {
+				queryBuilder.andWhere('user.login = :login', {
+					login: options.filter.login,
+				});
+			}
+		}
+	
+		if(options.sorting) {
+			queryBuilder.orderBy(options.sorting.column, options.sorting.direction);
+		}
+	
+		if(options.pagination) {
+			queryBuilder.skip(options.pagination.page * options.pagination.size).take(options.pagination.size);
+		}
 
 		const userRoles = await queryBuilder.getMany();
 		const result = userRoles.map(function(el) {

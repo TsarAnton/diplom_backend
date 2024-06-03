@@ -114,7 +114,7 @@ export class UserService  {
          		throw new BadRequestException(`User with login ${updateUserDto.login} already exist`);
         	}
       	}
-      	const userRoles = (await this.readUserRoles(id)).map(el => el.id);
+      	const userRoles = (await this.readUserRoles(id))?.map(el => el.id);
       	let set = new Set();
 		if(updateUserDto.deletedRoles) {
       		for(let role of updateUserDto.deletedRoles) {
@@ -151,7 +151,7 @@ export class UserService  {
 		await this.userRepository.update(id, user);
 		const updatedUser = await this.readById(id);
 
-		if(deletedRoles?.length !== 0) {
+		if(deletedRoles !== undefined && deletedRoles.length !== 0) {
 			await this.userRoleRepository.createQueryBuilder()
 				.softDelete()
 				.where("role_id IN (:...roles)", {
@@ -163,7 +163,7 @@ export class UserService  {
 				.execute()
 		}
 
-		if(addedRoles?.length !== 0) {
+		if(addedRoles !== undefined && addedRoles.length !== 0) {
 			await this.userRepository.createQueryBuilder()
 				.insert()
 				.into(UserRole)

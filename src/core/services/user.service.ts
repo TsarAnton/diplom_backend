@@ -72,12 +72,12 @@ export class UserService  {
 			}
 		}
 
-		if(options.sorting) {
-			queryBuilder.orderBy(options.sorting.column, options.sorting.direction);
-		}
-
 		if(options.pagination) {
 			queryBuilder.skip(options.pagination.page * options.pagination.size).take(options.pagination.size);
+		}
+
+		if(options.sorting) {
+			queryBuilder.orderBy(options.sorting.column, options.sorting.direction);
 		}
 
 		return await queryBuilder.getMany();
@@ -116,55 +116,63 @@ export class UserService  {
       	}
       	const userRoles = (await this.readUserRoles(id)).map(el => el.id);
       	let set = new Set();
-      	for(let role of updateUserDto.deletedRoles) {
-        	if(set.has(role)) {
-          		throw new BadRequestException(`Role with id=${role} appears 2 or more times`);
-        	} else {
-          		const existingRole = await this.roleService.readById(role);
-          		if(existingRole === null) {
-            		throw new NotFoundException(`Role with id=${role} does not exist`);
-          		}
-          		if(!userRoles.includes(role)) {
-            		throw new BadRequestException(`User with id=${id} does not have role with id=${role}`);
-          		}
-        	}
-      	}
-      	for(let role of updateUserDto.addedRoles) {
-        	if(set.has(role)) {
-        		throw new BadRequestException(`Role with id=${role} appears 2 or more times`);
-        	} else {
-          		const existingRole = await this.roleService.readById(role);
-          		if(existingRole === null) {
-            		throw new NotFoundException(`Role with id=${role} does not exist`);
-          		}
-          		if(userRoles.includes(role)) {
-            		throw new BadRequestException(`User with id=${id} already has role with id=${role}`);
-          		}
-        	}
-      	}
+		if(updateUserDto.deletedRoles) {
+      		for(let role of updateUserDto.deletedRoles) {
+        		if(set.has(role)) {
+    	      		throw new BadRequestException(`Role with id=${role} appears 2 or more times`);
+	        	} else {
+          			const existingRole = await this.roleService.readById(role);
+          			if(existingRole === null) {
+        	    		throw new NotFoundException(`Role with id=${role} does not exist`);
+    	      		}
+	          		if(!userRoles.includes(role)) {
+            			throw new BadRequestException(`User with id=${id} does not have role with id=${role}`);
+          			}
+        		}
+      		}
+		}
+		if(updateUserDto.addedRoles) {
+      		for(let role of updateUserDto.addedRoles) {
+        		if(set.has(role)) {
+    	    		throw new BadRequestException(`Role with id=${role} appears 2 or more times`);
+	        	} else {
+          			const existingRole = await this.roleService.readById(role);
+          			if(existingRole === null) {
+        	    		throw new NotFoundException(`Role with id=${role} does not exist`);
+    	      		}
+	          		if(userRoles.includes(role)) {
+            			throw new BadRequestException(`User with id=${id} already has role with id=${role}`);
+          			}
+        		}
+      		}
+		}
         const {addedRoles, deletedRoles , ...user } = updateUserDto;
 
 		await this.userRepository.update(id, user);
 		const updatedUser = await this.readById(id);
 
-		await this.userRoleRepository.createQueryBuilder()
-			.softDelete()
-			.where("role_id IN (:...roles)", {
-				roles: deletedRoles,
-			})
-			.andWhere("user_id = :userId", {
-				userId: id,
-			})
-			.execute()
+		if(deletedRoles?.length !== 0) {
+			await this.userRoleRepository.createQueryBuilder()
+				.softDelete()
+				.where("role_id IN (:...roles)", {
+					roles: deletedRoles,
+				})
+				.andWhere("user_id = :userId", {
+					userId: id,
+				})
+				.execute()
+		}
 
-		await this.userRepository.createQueryBuilder()
-			.insert()
-			.into(UserRole)
-			.values((await this.roleService.readAllByIds(addedRoles)).map(el => ({
-				user: updatedUser,
-				role: el
-			})))
-			.execute();
+		if(addedRoles?.length !== 0) {
+			await this.userRepository.createQueryBuilder()
+				.insert()
+				.into(UserRole)
+				.values((await this.roleService.readAllByIds(addedRoles)).map(el => ({
+					user: updatedUser,
+					role: el
+				})))
+				.execute();
+		}
 		updatedUser.roles = await this.readUserRoles(id);
 		return updatedUser;
 	}

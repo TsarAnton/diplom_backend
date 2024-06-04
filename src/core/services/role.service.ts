@@ -35,8 +35,8 @@ export class RoleService  {
 
 		if (options.filter) {
 			if (options.filter.name) {
-				queryBuilder.andWhere('role.name = :name', {
-					name: options.filter.name,
+				queryBuilder.andWhere('role.name LIKE :name', {
+					name: "%" + options.filter.name + "%",
 				});
 			}
 		}

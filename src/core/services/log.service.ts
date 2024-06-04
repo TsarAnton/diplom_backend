@@ -45,6 +45,16 @@ export class LogService  {
             ]);
 
 		if (options.filter) {
+			if (options.filter.dateStart) {
+				queryBuilder.andWhere('log.date >= :dateStart', {
+					dateStart: options.filter.dateStart,
+				});
+			}
+			if (options.filter.dateEnd) {
+				queryBuilder.andWhere('log.date <= :dateEnd', {
+					date: options.filter.dateEnd,
+				});
+			}
 			if (options.filter.date) {
 				queryBuilder.andWhere('log.date = :date', {
 					date: options.filter.date,
@@ -56,8 +66,8 @@ export class LogService  {
 				});
 			}
             if (options.filter.operatingSystem) {
-				queryBuilder.andWhere('log.operatingSystem = :operatingSystem', {
-					operatingSystem: options.filter.operatingSystem,
+				queryBuilder.andWhere('log.operatingSystem LIKE :operatingSystem', {
+					operatingSystem: "%" + options.filter.operatingSystem + "%",
 				});
 			}
             if (options.filter.type) {

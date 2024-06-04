@@ -35,8 +35,8 @@ export class ComputerService  {
 
 		if (options.filter) {
 			if (options.filter.name) {
-				queryBuilder.andWhere('computer.name = :name', {
-					name: options.filter.name,
+				queryBuilder.andWhere('computer.name LIKE :name', {
+					name: "%" + options.filter.name + "%",
 				});
 			}
 			if (options.filter.macAddress) {

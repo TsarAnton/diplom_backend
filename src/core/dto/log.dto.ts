@@ -136,5 +136,15 @@ export class ReadAllLogDto {
     @IsOptional()
 	@MaxLength(50)
 	@IsDate()
+    dateStart?: Date;
+
+	@IsOptional()
+	@MaxLength(50)
+	@IsDate()
+    dateEnd?: Date;
+
+	@IsOptional()
+	@MaxLength(50)
+	@IsDate()
     date?: Date;
 }

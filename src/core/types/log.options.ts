@@ -3,6 +3,8 @@ import { ISortingOptions } from "./common/sorting-options";
 
 export interface ILogOptions {
     filter?: {
+        dateStart?: Date;
+        dateEnd?: Date;
         date?: Date;
         loginId?: string;
         operatingSystem?: string;

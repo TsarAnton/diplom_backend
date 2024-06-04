@@ -10,6 +10,7 @@ import { YearComputerWorkService } from '../services/year-computer-work.service'
 import { CreateStatisticsResult, StatisticsHours, StatisticsPeriod } from '../types/statistics.options';
 import { getDateDiff, getDateDiffHours, getDayNext, getDayStart, getMonthNext, getMonthStart, getYearNext, getYearStart } from '../types/date.functions';
 import { AuthGuard } from '@nestjs/passport';
+import { UpdateComputerDto } from '../dto/computer.dto';
 
 @Controller('statistics')
 export class StatisticsController {
@@ -150,17 +151,28 @@ export class StatisticsController {
   @Post()
   @HttpCode(HttpStatus.OK)
   async createStatisticsAction(@Body() packet: CreateStatisticsDto): Promise<CreateStatisticsResult> {
-    console.log(packet);
     //получили компьютер, если такого нет - создали
-    const computerOptions = { 
-        name: packet.computerName, 
-        macAddress: packet.macAddress, 
-        ipAddress: packet.ipAddress, 
-        //audince: packet.audince,
+    const readComputerOptions = { 
+        macAddress: packet.macAddress,
     };
-    let computer = await this.computerService.readOne(computerOptions);
+    let computer = await this.computerService.readOne(readComputerOptions);
     if(computer == null) {
-        computer = await this.computerService.create(computerOptions);
+        computer = await this.computerService.create({
+            macAddress: packet.macAddress,
+            ipAddress: packet.ipAddress,
+            name: packet.computerName,
+        });
+    } else {
+        let updateComputerDto = new UpdateComputerDto;
+        if(computer.name !== packet.computerName) {
+            updateComputerDto.name = packet.computerName;
+        }
+        if(computer.ipAddress !== packet.ipAddress) {
+            updateComputerDto.ipAddress = packet.ipAddress;
+        }
+        if(updateComputerDto.ipAddress || updateComputerDto.name) {
+            computer = await this.computerService.update(computer.id, updateComputerDto);
+        }
     }
 
     const isWindows = packet.operatingSystem.includes("Windows");
@@ -213,6 +225,9 @@ export class StatisticsController {
                 operatingSystem: packet.operatingSystem,
                 loginId: packet.loginId,
             });
+            if(existingPeriodComputerWork == null) {
+                throw new NotFoundException(`periodComputerWork with loginId=${packet.loginId}, operatingSystem=${packet.operatingSystem}, computerId=${computer.id} does not exist`);
+            }
             const updatedComputerWork = await this.periodComputerWorkService.update(existingPeriodComputerWork.id, { dateEnd: packet.date });
             dateStart = new Date(updatedComputerWork.dateStart);
             dateEnd = new Date(updatedComputerWork.dateEnd);

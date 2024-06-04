@@ -52,9 +52,19 @@ export class YearComputerWorkService  {
 					date: options.filter.date,
 				});
 			}
+			if (options.filter.dateStart) {
+				queryBuilder.andWhere('yearComputerWork.date >= :dateStart', {
+					dateStart: options.filter.dateStart,
+				});
+			}
+			if (options.filter.dateEnd) {
+				queryBuilder.andWhere('yearComputerWork.date <= :dateEnd', {
+					date: options.filter.dateEnd,
+				});
+			}
             if (options.filter.operatingSystem) {
-				queryBuilder.andWhere('yearComputerWork.operatingSystem = :operatingSystem', {
-					operatingSystem: options.filter.operatingSystem,
+				queryBuilder.andWhere('yearComputerWork.operatingSystem LIKE :operatingSystem', {
+					operatingSystem: "%" + options.filter.operatingSystem + "%",
 				});
 			}
 			if(options.filter.computers) {
@@ -162,8 +172,8 @@ export class YearComputerWorkService  {
 			});
 
             if (operatingSystem) {
-				queryBuilder.andWhere('yearComputerWork.operatingSystem = :operatingSystem', {
-					operatingSystem: operatingSystem,
+				queryBuilder.andWhere('yearComputerWork.operatingSystem LIKE :operatingSystem', {
+					operatingSystem: "%" + operatingSystem + "%",
 				});
 			}
 			if(computerIds.length !== 0) {

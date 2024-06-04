@@ -49,13 +49,23 @@ export class DayComputerWorkService  {
 
 		if (options.filter) {
 			if (options.filter.date) {
-				queryBuilder.andWhere('dayComputerWork.date = :date', {
+				queryBuilder.andWhere('dateComputerWork.date = :date', {
 					date: options.filter.date,
 				});
 			}
+			if (options.filter.dateStart) {
+				queryBuilder.andWhere('dayComputerWork.date >= :dateStart', {
+					dateStart: options.filter.dateStart,
+				});
+			}
+			if (options.filter.dateEnd) {
+				queryBuilder.andWhere('dayComputerWork.date <= :dateEnd', {
+					date: options.filter.dateEnd,
+				});
+			}
             if (options.filter.operatingSystem) {
-				queryBuilder.andWhere('dayComputerWork.operatingSystem = :operatingSystem', {
-					operatingSystem: options.filter.operatingSystem,
+				queryBuilder.andWhere('dayComputerWork.operatingSystem LIKE :operatingSystem', {
+					operatingSystem: "%" + options.filter.operatingSystem + "%",
 				});
 			}
 			if(options.filter.computers) {
@@ -163,8 +173,8 @@ export class DayComputerWorkService  {
 			});
 
             if (operatingSystem) {
-				queryBuilder.andWhere('dayComputerWork.operatingSystem = :operatingSystem', {
-					operatingSystem: operatingSystem,
+				queryBuilder.andWhere('dayComputerWork.operatingSystem LIKE :operatingSystem', {
+					operatingSystem: "%" + operatingSystem + "%",
 				});
 			}
 			if(computerIds.length !== 0) {

@@ -66,8 +66,8 @@ export class UserService  {
 
 		if (options.filter) {
 			if (options.filter.login) {
-				queryBuilder.andWhere('user.login = :login', {
-					login: options.filter.login,
+				queryBuilder.andWhere('user.login LIKE :login', {
+					login: "%" + options.filter.login + "%",
 				});
 			}
 		}
@@ -230,7 +230,7 @@ export class UserService  {
 
 		if (options.filter) {
 			if (options.filter.login) {
-				queryBuilder.andWhere('user.login = :login', {
+				queryBuilder.andWhere('user.login LIKE %:login%', {
 					login: options.filter.login,
 				});
 			}

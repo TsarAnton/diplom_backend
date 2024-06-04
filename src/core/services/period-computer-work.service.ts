@@ -49,12 +49,12 @@ export class PeriodComputerWorkService  {
 
 		if (options.filter) {
 			if (options.filter.dateStart) {
-				queryBuilder.andWhere('periodComputerWork.dateStart = :dateStart', {
+				queryBuilder.andWhere('periodComputerWork.dateStart >= :dateStart', {
 					dateStart: options.filter.dateStart,
 				});
 			}
 			if (options.filter.dateEnd) {
-				queryBuilder.andWhere('periodComputerWork.dateEnd = :dateEnd', {
+				queryBuilder.andWhere('periodComputerWork.dateEnd <= :dateEnd', {
 					dateEnd: options.filter.dateEnd,
 				});
 			}
@@ -64,8 +64,8 @@ export class PeriodComputerWorkService  {
 				});
 			}
             if (options.filter.operatingSystem) {
-				queryBuilder.andWhere('periodComputerWork.operatingSystem = :operatingSystem', {
-					operatingSystem: options.filter.operatingSystem,
+				queryBuilder.andWhere('periodComputerWork.operatingSystem LIKE :operatingSystem', {
+					operatingSystem: "%" + options.filter.operatingSystem + "%",
 				});
 			}
 			if(options.filter.computers) {
@@ -176,8 +176,8 @@ export class PeriodComputerWorkService  {
 			});
 
         if (readStatisticsDto.operatingSystem) {
-			queryBuilder.andWhere('periodComputerWork.operatingSystem = :operatingSystem', {
-				operatingSystem: readStatisticsDto.operatingSystem,
+			queryBuilder.andWhere('periodComputerWork.operatingSystem LIKE :operatingSystem', {
+				operatingSystem: "%" + readStatisticsDto.operatingSystem + "%",
 			});
 		}
 		if(readStatisticsDto.computers.length !== 0) {

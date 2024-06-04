@@ -92,7 +92,7 @@ export class PeriodComputerWorkService  {
 		const entities = await queryBuilder.getMany();
 		const entitiesCount = await queryBuilder.getCount();
 		if(options.pagination) {
-			const pageCount = Math.floor(entitiesCount / options.pagination.size);
+			const pageCount = Math.floor(entitiesCount / options.pagination.size) - ((entitiesCount % +options.pagination.size === 0) ? 1: 0);
 			return {
 				meta: {
 					page: +options.pagination.page,
@@ -248,6 +248,56 @@ export class PeriodComputerWorkService  {
 			});
 		}
 		statisticsPeriod.computers.push(statisticsPeriodMember);
+
+		if(readStatisticsDto.sorting) {
+			const buff = readStatisticsDto.sorting.column.split(".");
+			const sortColumn = buff[0];
+			const sortProp = buff[1];
+
+			if(sortColumn === "computer") {
+				statisticsPeriod.computers.sort(function(a, b) {
+					if(a.computer[sortProp] > b.computer[sortProp]) {
+						return readStatisticsDto.sorting.direction === "ASC" ? 1 : -1;
+					} else if(a.computer[sortProp] < b.computer[sortProp]) {
+						return readStatisticsDto.sorting.direction === "ASC" ? -1 : 1;
+					}
+					return 0;
+				});
+			} else if(sortColumn === "periods") {
+				for(let computer of statisticsPeriod.computers) {
+					computer.periods.sort(function(a, b) {
+						if(a[sortProp] > b[sortProp]) {
+							return readStatisticsDto.sorting.direction === "ASC" ? 1 : -1;
+						} else if(a[sortProp] < b[sortProp]) {
+							return readStatisticsDto.sorting.direction === "ASC" ? -1 : 1;
+						}
+						return 0;
+					});
+				}
+				statisticsPeriod.computers.sort(function(a, b) {
+					if(a.periods[0][sortProp] > b.periods[0][sortProp]) {
+						return readStatisticsDto.sorting.direction === "ASC" ? 1 : -1;
+					} else if(a.periods[0][sortProp] < b.periods[0][sortProp]) {
+						return readStatisticsDto.sorting.direction === "ASC" ? -1 : 1;
+					}
+					return 0;
+				});
+			}		
+		}
+
+		const entitiesCount = statisticsPeriod.computers.length;
+		if(readStatisticsDto.pagination) {
+			const pageCount = Math.floor(entitiesCount / readStatisticsDto.pagination.size) - ((entitiesCount % +readStatisticsDto.pagination.size === 0) ? 1: 0);
+			const pos = readStatisticsDto.pagination.page * readStatisticsDto.pagination.size;
+			statisticsPeriod.computers = statisticsPeriod.computers.slice(pos, pos + readStatisticsDto.pagination.size);
+			statisticsPeriod.meta = {
+				page: +readStatisticsDto.pagination.page,
+				maxPage: pageCount,
+				entitiesCount: pageCount === +readStatisticsDto.pagination.page ? (entitiesCount % +readStatisticsDto.pagination.size) : +readStatisticsDto.pagination.size,
+			};
+		} else {
+			statisticsPeriod.meta = null;
+		}
 
 		return statisticsPeriod;
 	}

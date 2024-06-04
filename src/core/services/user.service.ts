@@ -83,7 +83,7 @@ export class UserService  {
 		const entities = await queryBuilder.getMany();
 		const entitiesCount = await queryBuilder.getCount();
 		if(options.pagination) {
-			const pageCount = Math.floor(entitiesCount / options.pagination.size);
+			const pageCount = Math.floor(entitiesCount / options.pagination.size) - ((entitiesCount % +options.pagination.size === 0) ? 1: 0);
 			return {
 				meta: {
 					page: +options.pagination.page,
@@ -258,7 +258,7 @@ export class UserService  {
 		}
 		const entitiesCount = await queryBuilder.getCount();
 		if(options.pagination) {
-			const pageCount = Math.floor(entitiesCount / options.pagination.size);
+			const pageCount = Math.floor(entitiesCount / options.pagination.size) - ((entitiesCount % +options.pagination.size === 0) ? 1: 0);
 			return {
 				meta: {
 					page: +options.pagination.page,

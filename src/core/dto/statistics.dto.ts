@@ -15,6 +15,8 @@ import {
 	IsDecimal,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { PaginationDto } from './common/pagination.dto';
+import { SortingDto } from './common/sorting.dto';
 
 export class CreateStatisticsDto {
     @IsNotEmpty()
@@ -61,6 +63,18 @@ export class CreateStatisticsDto {
 }
 
 export class ReadStatisticsDto {
+	@IsOptional()
+	@IsObject()
+	@ValidateNested()
+	@Type(() => PaginationDto)
+	public pagination?: PaginationDto;
+
+	@IsOptional()
+	@IsObject()
+	@ValidateNested()
+	@Type(() => SortingDto)
+	public sorting?: SortingDto;
+	
 	@IsOptional()
 	@IsArray()
 	@IsInt({ each: true })

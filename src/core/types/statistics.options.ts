@@ -4,6 +4,7 @@ import { Log } from "../entities/log.entity";
 import { MonthComputerWork } from "../entities/month-computer-work.entity";
 import { PeriodComputerWork } from "../entities/period-computer-work.entity";
 import { YearComputerWork } from "../entities/year-computer-work.entity";
+import { IPaginationOptions, IPaginationResult } from "./common/pagination-options";
 
 export class StatisticsHoursMember {
     computer: Computer;
@@ -11,6 +12,7 @@ export class StatisticsHoursMember {
 }
 
 export class StatisticsHours {
+    meta: IPaginationResult;
     dateStart: Date;
     dateEnd: Date;
     computers: StatisticsHoursMember[];
@@ -29,6 +31,7 @@ export class StatisticsPeriodMember {
 }
 
 export class StatisticsPeriod {
+    meta: IPaginationResult;
     dateStart: Date;
     dateEnd: Date;
     computers: StatisticsPeriodMember[];

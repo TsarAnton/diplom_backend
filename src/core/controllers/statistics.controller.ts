@@ -140,12 +140,53 @@ export class StatisticsController {
         }
     }
     
-    return {
-        dateStart: dateStart,
-        dateEnd:readStatisticsDto.dateEnd,
-        computers: Array.from(computersMap, ([name, value]) => (value)),
+    let statisticsHours = new StatisticsHours;
+    statisticsHours.dateStart = dateStart;
+    statisticsHours.dateEnd = dateEnd;
+    statisticsHours.computers = Array.from(computersMap, ([name, value]) => (value));
+    //statisticsHours.meta = null;
+    if(readStatisticsDto.sorting) {
+        const buff = readStatisticsDto.sorting.column.split(".");
+        const sortColumn = buff[0];
+        if(buff.length == 2) {
+            const sortProp = buff[1];
+            if(sortColumn === "computer") {
+                statisticsHours.computers.sort(function(a, b) {
+                    if(a.computer[sortProp] > b.computer[sortProp]) {
+                        return readStatisticsDto.sorting.direction === "ASC" ? 1 : -1;
+                    } else if(a.computer[sortProp] < b.computer[sortProp]) {
+                        return readStatisticsDto.sorting.direction === "ASC" ? -1 : 1;
+                    }
+                    return 0;
+                });
+            }
+        } else if(sortColumn === "hours") {
+            statisticsHours.computers.sort(function(a, b) {
+                if(a.hours > b.hours) {
+                    return readStatisticsDto.sorting.direction === "ASC" ? 1 : -1;
+                } else if(a.hours < b.hours) {
+                    return readStatisticsDto.sorting.direction === "ASC" ? -1 : 1;
+                }
+                return 0;
+            });
+        }
     }
 
+    const entitiesCount = statisticsHours.computers.length;
+	if(readStatisticsDto.pagination) {
+		const pageCount = Math.floor(entitiesCount / readStatisticsDto.pagination.size) - ((entitiesCount % +readStatisticsDto.pagination.size === 0) ? 1: 0);
+		const pos = readStatisticsDto.pagination.page * readStatisticsDto.pagination.size;
+		statisticsHours.computers = statisticsHours.computers.slice(pos, pos + readStatisticsDto.pagination.size);
+		statisticsHours.meta = {
+			page: +readStatisticsDto.pagination.page,
+			maxPage: pageCount,
+			entitiesCount: pageCount === +readStatisticsDto.pagination.page ? (entitiesCount % +readStatisticsDto.pagination.size) : +readStatisticsDto.pagination.size,
+		};
+	} else {
+		statisticsHours.meta = null;
+	}
+    
+    return statisticsHours;
   }
 
   @Post()

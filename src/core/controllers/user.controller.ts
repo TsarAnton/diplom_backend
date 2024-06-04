@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Delete, Param, Body, Put, NotFoundException, BadRequestException, HttpStatus, HttpCode, UseGuards, Query } from '@nestjs/common';
 import { User } from '../entities/user.entity';
 import { UserService } from '../services/user.service';
-import { CreateUserDto, UpdateUserDto, ReadAllUserDto, ReadUserDto } from '../dto/user.dto';
+import { CreateUserDto, UpdateUserDto, ReadAllUserDto, ReadUserDto, ReadAllUserWithRolesDto } from '../dto/user.dto';
 import { RoleService } from '../services/role.service';
 import { AuthGuard } from '@nestjs/passport';
 import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
@@ -32,7 +32,7 @@ export class UserController {
 
   @Get("/getManyWithRoles")
   @HttpCode(HttpStatus.OK)
-  getAllWithRolesAction(@Query() userOptions: ReadAllUserDto): Promise<UserPaginationResult> {
+  getAllWithRolesAction(@Query() userOptions: ReadAllUserWithRolesDto): Promise<UserPaginationResult> {
     const { pagination, sorting, ...filter } = userOptions;
     return this.userService.readAllWithRoles({
       pagination,

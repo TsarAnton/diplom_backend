@@ -14,3 +14,13 @@ export class UserPaginationResult {
     meta: IPaginationResult;
     entities: User[];
 }
+
+export interface IUserWithRolesOptions {
+    filter?: {
+        ids?:number[];
+        login?: string;
+        roles?: number[];
+    }
+    sorting?: ISortingOptions;
+    pagination?: IPaginationOptions;
+}

@@ -94,3 +94,36 @@ export class ReadAllUserDto {
 	@IsString()
     public login?: string;
 }
+
+export class ReadAllUserWithRolesDto {
+	@IsOptional()
+	@IsObject()
+	@ValidateNested()
+	@Type(() => PaginationDto)
+	public pagination?: PaginationDto;
+
+	@IsOptional()
+	@IsObject()
+	@ValidateNested()
+	@Type(() => SortingDto)
+	public sorting?: SortingDto;
+
+    @IsOptional()
+	@MaxLength(50)
+	@IsString()
+    public login?: string;
+
+	@IsOptional()
+    @IsDefined()
+	@IsArray()
+	@IsInt({ each: true })
+	@Transform(roles => Array(roles).map(id => Number(id)))
+    roles?: number[];
+
+	@IsOptional()
+    @IsDefined()
+	@IsArray()
+	@IsInt({ each: true })
+	@Transform(ids => Array(ids).map(id => Number(id)))
+    ids: number[];
+}

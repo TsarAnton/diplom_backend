@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { User } from '../entities/user.entity';
-import { IUserOptions, UserPaginationResult } from '../types/user.options';
+import { IUserOptions, IUserWithRolesOptions, UserPaginationResult } from '../types/user.options';
 import { RoleService } from './role.service';
 import { CreateUserDto, UpdateUserDto, ReadUserDto } from '../dto/user.dto';
 import { UserRole } from '../entities/user-role.entity';
@@ -227,7 +227,7 @@ export class UserService  {
 	}
 
 	public async readAllWithRoles(
-		options: IUserOptions,
+		options: IUserWithRolesOptions,
 	): Promise<UserPaginationResult> {
 
 		const queryBuilder = this.userRepository.createQueryBuilder("user");
@@ -242,6 +242,17 @@ export class UserService  {
 					login: "%" + options.filter.login + "%",
 				});
 			}
+			if(options.filter.ids) {
+				if(typeof options.filter.ids === "string") {
+					queryBuilder.andWhere('user.id = :ids', {
+						ids: Number(options.filter.ids),
+					});
+				} else {
+					queryBuilder.andWhere('user.id IN (:...ids)', {
+						ids: options.filter.ids, //options.filter.computers.map(id => Number(id)),
+					});
+				}
+			}
 		}
 
 		if(options.pagination) {
@@ -255,6 +266,22 @@ export class UserService  {
 		let entities = await queryBuilder.getMany();
 		for(let user of entities) {
 			user.roles = await this.readUserRoles(user.id);
+		}
+		if(options.filter?.roles) {
+			let rolesArray = [0];
+			if(typeof options.filter.roles === "string") {
+				rolesArray[0] = Number(options.filter.roles);
+			} else {
+				rolesArray = options.filter.roles.map(id => Number(id));
+			}
+			entities = entities.filter(function(el) {
+				for(let el1 of el.roles) {
+					if(rolesArray.includes(el1.id)) {
+						return true;
+					}
+				}
+				return false;
+			});
 		}
 		const entitiesCount = await queryBuilder.getCount();
 		if(options.pagination) {

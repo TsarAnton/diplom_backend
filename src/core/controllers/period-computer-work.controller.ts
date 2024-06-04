@@ -6,6 +6,7 @@ import { CreatePeriodComputerWorkDto, UpdatePeriodComputerWorkDto, ReadAllPeriod
 import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
 import { RolesGuard } from 'src/auth/services/roles.guard';
 import { AuthGuard } from '@nestjs/passport';
+import { PeriodComputerWorkPaginationResult } from '../types/period-computer-work.options';
 
 @HasRoles("admin")
 @UseGuards(RolesGuard)
@@ -20,7 +21,7 @@ export class PeriodComputerWorkController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  getAllAction(@Query() periodComputerWorkOptions: ReadAllPeriodComputerWorkDto): Promise<PeriodComputerWork[]> {
+  getAllAction(@Query() periodComputerWorkOptions: ReadAllPeriodComputerWorkDto): Promise<PeriodComputerWorkPaginationResult> {
     const { pagination, sorting, ...filter } = periodComputerWorkOptions;
     return this.periodComputerWorkService.readAll({
       pagination,

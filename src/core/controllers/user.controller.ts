@@ -6,6 +6,7 @@ import { RoleService } from '../services/role.service';
 import { AuthGuard } from '@nestjs/passport';
 import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
 import { RolesGuard } from 'src/auth/services/roles.guard';
+import { UserPaginationResult } from '../types/user.options';
 
 @HasRoles("admin")
 @UseGuards(RolesGuard)
@@ -20,7 +21,7 @@ export class UserController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  getAllAction(@Query() userOptions: ReadAllUserDto): Promise<User[]> {
+  getAllAction(@Query() userOptions: ReadAllUserDto): Promise<UserPaginationResult> {
     const { pagination, sorting, ...filter } = userOptions;
     return this.userService.readAll({
       pagination,
@@ -31,7 +32,7 @@ export class UserController {
 
   @Get("/getManyWithRoles")
   @HttpCode(HttpStatus.OK)
-  getAllWithRolesAction(@Query() userOptions: ReadAllUserDto): Promise<User[]> {
+  getAllWithRolesAction(@Query() userOptions: ReadAllUserDto): Promise<UserPaginationResult> {
     const { pagination, sorting, ...filter } = userOptions;
     return this.userService.readAllWithRoles({
       pagination,

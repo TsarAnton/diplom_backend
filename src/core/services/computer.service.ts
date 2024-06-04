@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Computer } from '../entities/computer.entity';
-import { IComputerOptions } from '../types/computer.options';
+import { ComputerPaginationResult, IComputerOptions } from '../types/computer.options';
 import { CreateComputerDto, UpdateComputerDto, ReadComputerDto } from '../dto/computer.dto';
 
 @Injectable()
@@ -25,13 +25,13 @@ export class ComputerService  {
 
 	public async readAll(
         options: IComputerOptions,
-    ): Promise<Computer[]> {
+    ): Promise<ComputerPaginationResult> {
 
-		const queryBuilder = this.computerRepository.createQueryBuilder();
+		const queryBuilder = this.computerRepository.createQueryBuilder("computer");
 
 		queryBuilder
-			.select(['computer.id', 'computer.name', 'computer.macAddress', 'computer.ipAddress', 'computer.audince'])
-			.from(Computer, 'computer');
+			.select(['computer.id', 'computer.name', 'computer.macAddress', 'computer.ipAddress', 'computer.audince']);
+			//.from(Computer, 'computer');
 
 		if (options.filter) {
 			if (options.filter.name) {
@@ -64,7 +64,23 @@ export class ComputerService  {
 			queryBuilder.skip(options.pagination.page * options.pagination.size).take(options.pagination.size);
 		}
 
-		return await queryBuilder.getMany();
+		const entities = await queryBuilder.getMany();
+		const entitiesCount = await queryBuilder.getCount();
+		if(options.pagination) {
+			const pageCount = Math.floor(entitiesCount / options.pagination.size);
+			return {
+				meta: {
+					page: +options.pagination.page,
+					maxPage: pageCount,
+					entitiesCount: pageCount === +options.pagination.page ? (entitiesCount % +options.pagination.size) : +options.pagination.size,
+				},
+				entities: entities,
+			};
+		}
+		return {
+			meta: null,
+			entities: entities,
+		};
 	}
 
 	public async readById(
@@ -92,7 +108,7 @@ export class ComputerService  {
         	throw new NotFoundException(`Computer with id=${id} does not exist`);
       	}
       	if(updateComputerDto.macAddress) {
-        	const existingComputers = await this.readAll({ filter: { macAddress: updateComputerDto.macAddress } });
+        	const existingComputers = (await this.readAll({ filter: { macAddress: updateComputerDto.macAddress } })).entities;
         	if(existingComputers.length !== 0 && (existingComputers.length > 1 || existingComputers[0].id != id)) {
           		throw new BadRequestException(`Computer with mac-address ${updateComputerDto.macAddress} already exist`);
         	}

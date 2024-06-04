@@ -5,6 +5,7 @@ import { CreateComputerDto, UpdateComputerDto, ReadAllComputerDto, ReadComputerD
 import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
 import { RolesGuard } from 'src/auth/services/roles.guard';
 import { AuthGuard } from '@nestjs/passport';
+import { ComputerPaginationResult } from '../types/computer.options';
 
 @HasRoles("admin")
 @UseGuards(RolesGuard)
@@ -18,7 +19,7 @@ export class ComputerController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  getAllAction(@Query() computerOptions: ReadAllComputerDto): Promise<Computer[]> {
+  getAllAction(@Query() computerOptions: ReadAllComputerDto): Promise<ComputerPaginationResult> {
     const { pagination, sorting, ...filter } = computerOptions;
     return this.computerService.readAll({
       pagination,

@@ -1,4 +1,5 @@
-import { IPaginationOptions } from "./common/pagination-options";
+import { YearComputerWork } from "../entities/year-computer-work.entity";
+import { IPaginationOptions, IPaginationResult } from "./common/pagination-options";
 import { ISortingOptions } from "./common/sorting-options";
 
 export interface IYearComputerWorkOptions {
@@ -12,4 +13,9 @@ export interface IYearComputerWorkOptions {
     }
     sorting?: ISortingOptions;
     pagination?: IPaginationOptions;
+}
+
+export class YearComputerWorkPaginationResult {
+    meta: IPaginationResult;
+    entities: YearComputerWork[];
 }

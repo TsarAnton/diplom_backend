@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { User } from '../entities/user.entity';
-import { IUserOptions } from '../types/user.options';
+import { IUserOptions, UserPaginationResult } from '../types/user.options';
 import { RoleService } from './role.service';
 import { CreateUserDto, UpdateUserDto, ReadUserDto } from '../dto/user.dto';
 import { UserRole } from '../entities/user-role.entity';
@@ -56,13 +56,13 @@ export class UserService  {
 
 	public async readAll(
         options: IUserOptions,
-    ): Promise<User[]> {
+    ): Promise<UserPaginationResult> {
 
-		const queryBuilder = this.userRepository.createQueryBuilder();
+		const queryBuilder = this.userRepository.createQueryBuilder("user");
 
-		queryBuilder
-			.select(['user.id', 'user.login', 'user.password'])
-			.from(User, 'user');
+		 queryBuilder
+		 	.select(['user.id', 'user.login', 'user.password']);
+		// 	.from(User, "user");
 
 		if (options.filter) {
 			if (options.filter.login) {
@@ -73,14 +73,30 @@ export class UserService  {
 		}
 
 		if(options.pagination) {
-			queryBuilder.skip(options.pagination.page * options.pagination.size).take(options.pagination.size);
+			queryBuilder.offset(options.pagination.page * options.pagination.size).limit(options.pagination.size);
 		}
 
 		if(options.sorting) {
-			queryBuilder.orderBy(options.sorting.column, options.sorting.direction);
+			queryBuilder.addOrderBy(options.sorting.column, options.sorting.direction);
 		}
 
-		return await queryBuilder.getMany();
+		const entities = await queryBuilder.getMany();
+		const entitiesCount = await queryBuilder.getCount();
+		if(options.pagination) {
+			const pageCount = Math.floor(entitiesCount / options.pagination.size);
+			return {
+				meta: {
+					page: +options.pagination.page,
+					maxPage: pageCount,
+					entitiesCount: pageCount === +options.pagination.page ? (entitiesCount % +options.pagination.size) : +options.pagination.size,
+				},
+				entities: entities,
+			};
+		}
+		return {
+			meta: null,
+			entities: entities,
+		};
 	}
 
 	public async readById(
@@ -109,7 +125,7 @@ export class UserService  {
         	throw new NotFoundException(`User with id=${id} does not exist`);
       	}
       	if(updateUserDto.login) {
-        	const existingUsers = await this.readAll({ filter: { login: updateUserDto.login } });
+        	const existingUsers = (await this.readAll({ filter: { login: updateUserDto.login } })).entities;
        		if(existingUsers.length !== 0 && (existingUsers.length > 1 || existingUsers[0].id != id)) {
          		throw new BadRequestException(`User with login ${updateUserDto.login} already exist`);
         	}
@@ -212,51 +228,49 @@ export class UserService  {
 
 	public async readAllWithRoles(
 		options: IUserOptions,
-	): Promise<User[]> {
+	): Promise<UserPaginationResult> {
 
-		const queryBuilder = this.userRepository.createQueryBuilder();
+		const queryBuilder = this.userRepository.createQueryBuilder("user");
 
-		queryBuilder
-			.select(["user.id", "user.login"])
-			.from(User, 'user')
-			.leftJoin('user.userRoles', 'userRole')
-			.leftJoin('userRole.role', 'role')
-			.addSelect([
-				"userRole.id",
-				"userRole.role",
-				"role.id",
-				"role.name"
-			]);
+		 queryBuilder
+		 	.select(['user.id', 'user.login', 'user.password']);
+		// 	.from(User, "user");
 
 		if (options.filter) {
 			if (options.filter.login) {
-				queryBuilder.andWhere('user.login LIKE %:login%', {
-					login: options.filter.login,
+				queryBuilder.andWhere('user.login LIKE :login', {
+					login: "%" + options.filter.login + "%",
 				});
 			}
 		}
-	
-		if(options.sorting) {
-			queryBuilder.orderBy(options.sorting.column, options.sorting.direction);
-		}
-	
+
 		if(options.pagination) {
-			queryBuilder.skip(options.pagination.page * options.pagination.size).take(options.pagination.size);
+			queryBuilder.offset(options.pagination.page * options.pagination.size).limit(options.pagination.size);
 		}
 
-		const userRoles = await queryBuilder.getMany();
-		const result = userRoles.map(function(el) {
-			let user = new User;
-			user.id = el.id;
-			user.login = el.login;
-			user.roles = el.userRoles.map(function(el1) {
-				let role = new Role;
-				role.id = el1.role.id;
-				role.name = el1.role.name;
-				return role;
-			});
-			return user;
-		});
-		return result;
+		if(options.sorting) {
+			queryBuilder.addOrderBy(options.sorting.column, options.sorting.direction);
+		}
+
+		let entities = await queryBuilder.getMany();
+		for(let user of entities) {
+			user.roles = await this.readUserRoles(user.id);
+		}
+		const entitiesCount = await queryBuilder.getCount();
+		if(options.pagination) {
+			const pageCount = Math.floor(entitiesCount / options.pagination.size);
+			return {
+				meta: {
+					page: +options.pagination.page,
+					maxPage: pageCount,
+					entitiesCount: pageCount === +options.pagination.page ? (entitiesCount % +options.pagination.size) : +options.pagination.size,
+				},
+				entities: entities,
+			};
+		}
+		return {
+			meta: null,
+			entities: entities,
+		};
 	}
 }

@@ -6,6 +6,7 @@ import { CreateYearComputerWorkDto, UpdateYearComputerWorkDto, ReadAllYearComput
 import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
 import { RolesGuard } from 'src/auth/services/roles.guard';
 import { AuthGuard } from '@nestjs/passport';
+import { YearComputerWorkPaginationResult } from '../types/year-computer-work.options';
 
 @HasRoles("admin")
 @UseGuards(RolesGuard)
@@ -20,7 +21,7 @@ export class YearComputerWorkController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  getAllAction(@Query() yearComputerWorkOptions: ReadAllYearComputerWorkDto): Promise<YearComputerWork[]> {
+  getAllAction(@Query() yearComputerWorkOptions: ReadAllYearComputerWorkDto): Promise<YearComputerWorkPaginationResult> {
     const { pagination, sorting, ...filter } = yearComputerWorkOptions;
     return this.yearComputerWorkService.readAll({
       pagination,

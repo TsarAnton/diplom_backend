@@ -6,6 +6,7 @@ import { CreateMonthComputerWorkDto, UpdateMonthComputerWorkDto, ReadAllMonthCom
 import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
 import { RolesGuard } from 'src/auth/services/roles.guard';
 import { AuthGuard } from '@nestjs/passport';
+import { MonthComputerWorkPaginationResult } from '../types/month-computer-work.options';
 
 @HasRoles("admin")
 @UseGuards(RolesGuard)
@@ -20,7 +21,7 @@ export class MonthComputerWorkController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  getAllAction(@Query() monthComputerWorkOptions: ReadAllMonthComputerWorkDto): Promise<MonthComputerWork[]> {
+  getAllAction(@Query() monthComputerWorkOptions: ReadAllMonthComputerWorkDto): Promise<MonthComputerWorkPaginationResult> {
     const { pagination, sorting, ...filter } = monthComputerWorkOptions;
     return this.monthComputerWorkService.readAll({
       pagination,

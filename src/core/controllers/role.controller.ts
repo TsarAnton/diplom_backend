@@ -5,6 +5,7 @@ import { CreateRoleDto, UpdateRoleDto, ReadAllRoleDto, ReadRoleDto } from '../dt
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from 'src/auth/services/roles.guard';
 import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
+import { RolePaginationResult } from '../types/role.options';
 
 @HasRoles("admin")
 @UseGuards(RolesGuard)
@@ -18,7 +19,7 @@ export class RoleController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  getAllAction(@Query() roleOptions: ReadAllRoleDto): Promise<Role[]> {
+  getAllAction(@Query() roleOptions: ReadAllRoleDto): Promise<RolePaginationResult> {
     const { pagination, sorting, ...filter } = roleOptions;
     return this.roleService.readAll({
       pagination,

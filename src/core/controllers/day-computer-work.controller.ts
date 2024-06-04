@@ -1,11 +1,11 @@
 import { Controller, Get, Post, Delete, Param, Body, Put, NotFoundException, BadRequestException, HttpStatus, HttpCode, UseGuards, Query } from '@nestjs/common';
 import { DayComputerWork } from '../entities/day-computer-work.entity';
 import { DayComputerWorkService } from '../services/day-computer-work.service';
-import { ComputerService } from '../services/computer.service';
 import { CreateDayComputerWorkDto, UpdateDayComputerWorkDto, ReadAllDayComputerWorkDto, ReadDayComputerWorkDto } from '../dto/day-computer-work.dto';
 import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
 import { RolesGuard } from 'src/auth/services/roles.guard';
 import { AuthGuard } from '@nestjs/passport';
+import { DayComputerWorkPaginationResult } from '../types/day-computer-work.options';
 
 @HasRoles("admin")
 @UseGuards(RolesGuard)
@@ -13,14 +13,13 @@ import { AuthGuard } from '@nestjs/passport';
 @Controller('dayComputersWork')
 export class DayComputerWorkController {
   constructor(
-    private readonly dayComputerWorkService: DayComputerWorkService,
-    private readonly computerService: ComputerService,
+    private readonly dayComputerWorkService: DayComputerWorkService
     ){
   }
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  getAllAction(@Query() dayComputerWorkOptions: ReadAllDayComputerWorkDto): Promise<DayComputerWork[]> {
+  getAllAction(@Query() dayComputerWorkOptions: ReadAllDayComputerWorkDto): Promise<DayComputerWorkPaginationResult> {
     const { pagination, sorting, ...filter } = dayComputerWorkOptions;
     return this.dayComputerWorkService.readAll({
       pagination,

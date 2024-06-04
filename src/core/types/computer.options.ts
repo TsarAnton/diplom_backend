@@ -1,4 +1,5 @@
-import { IPaginationOptions } from "./common/pagination-options";
+import { Computer } from "../entities/computer.entity";
+import { IPaginationOptions, IPaginationResult } from "./common/pagination-options";
 import { ISortingOptions } from "./common/sorting-options";
 
 export interface IComputerOptions {
@@ -10,4 +11,9 @@ export interface IComputerOptions {
     }
     sorting?: ISortingOptions;
     pagination?: IPaginationOptions;
+}
+
+export class ComputerPaginationResult {
+    meta: IPaginationResult;
+    entities: Computer[];
 }

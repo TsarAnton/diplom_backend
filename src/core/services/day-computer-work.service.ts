@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { DayComputerWork } from '../entities/day-computer-work.entity';
-import { IDayComputerWorkOptions } from '../types/day-computer-work.options';
+import { DayComputerWorkPaginationResult, IDayComputerWorkOptions } from '../types/day-computer-work.options';
 import { CreateDayComputerWorkDto, UpdateDayComputerWorkDto, ReadDayComputerWorkDto } from '../dto/day-computer-work.dto';
 import { ComputerService } from './computer.service';
 import { ReadStatisticsDto } from '../dto/statistics.dto';
@@ -31,13 +31,13 @@ export class DayComputerWorkService  {
 
 	public async readAll(
         options: IDayComputerWorkOptions,
-    ): Promise<DayComputerWork[]> {
+    ): Promise<DayComputerWorkPaginationResult> {
 
-		const queryBuilder = this.dayComputerWorkRepository.createQueryBuilder();
+		const queryBuilder = this.dayComputerWorkRepository.createQueryBuilder("dayComputerWork");
 
 		queryBuilder
 			.select(['dayComputerWork.id', 'dayComputerWork.date', 'dayComputerWork.operatingSystem'])
-			.from(DayComputerWork, 'dayComputerWork')
+			//.from(DayComputerWork, 'dayComputerWork')
             .leftJoin('dayComputerWork.computer', 'computer')
             .addSelect([
                 'computer.id',
@@ -89,7 +89,23 @@ export class DayComputerWorkService  {
 			queryBuilder.skip(options.pagination.page * options.pagination.size).take(options.pagination.size);
 		}
 		
-		return await queryBuilder.getMany();
+		const entities = await queryBuilder.getMany();
+		const entitiesCount = await queryBuilder.getCount();
+		if(options.pagination) {
+			const pageCount = Math.floor(entitiesCount / options.pagination.size);
+			return {
+				meta: {
+					page: +options.pagination.page,
+					maxPage: pageCount,
+					entitiesCount: pageCount === +options.pagination.page ? (entitiesCount % +options.pagination.size) : +options.pagination.size,
+				},
+				entities: entities,
+			};
+		}
+		return {
+			meta: null,
+			entities: entities,
+		};
 	}
 
 	public async readById(

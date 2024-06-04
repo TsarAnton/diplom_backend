@@ -1,4 +1,5 @@
-import { IPaginationOptions } from "./common/pagination-options";
+import { Role } from "../entities/role.entity";
+import { IPaginationOptions, IPaginationResult } from "./common/pagination-options";
 import { ISortingOptions } from "./common/sorting-options";
 
 export interface IRoleOptions {
@@ -7,4 +8,9 @@ export interface IRoleOptions {
     }
     sorting?: ISortingOptions;
     pagination?: IPaginationOptions;
+}
+
+export class RolePaginationResult {
+    meta: IPaginationResult;
+    entities: Role[];
 }

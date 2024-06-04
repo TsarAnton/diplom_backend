@@ -1,4 +1,5 @@
-import { IPaginationOptions } from "./common/pagination-options";
+import { Log } from "../entities/log.entity";
+import { IPaginationOptions, IPaginationResult } from "./common/pagination-options";
 import { ISortingOptions } from "./common/sorting-options";
 
 export interface ILogOptions {
@@ -13,4 +14,9 @@ export interface ILogOptions {
     }
     sorting?: ISortingOptions;
     pagination?: IPaginationOptions;
+}
+
+export class LogPaginationResult {
+    meta: IPaginationResult;
+    entities: Log[];
 }

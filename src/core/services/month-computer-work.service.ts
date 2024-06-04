@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { MonthComputerWork } from '../entities/month-computer-work.entity';
-import { IMonthComputerWorkOptions } from '../types/month-computer-work.options';
+import { IMonthComputerWorkOptions, MonthComputerWorkPaginationResult } from '../types/month-computer-work.options';
 import { CreateMonthComputerWorkDto, UpdateMonthComputerWorkDto, ReadMonthComputerWorkDto } from '../dto/month-computer-work.dto';
 import { ComputerService } from './computer.service';
 import { StatisticsHoursMember } from '../types/statistics.options';
@@ -30,13 +30,13 @@ export class MonthComputerWorkService  {
 
 	public async readAll(
         options: IMonthComputerWorkOptions,
-    ): Promise<MonthComputerWork[]> {
+    ): Promise<MonthComputerWorkPaginationResult> {
 
-		const queryBuilder = this.monthComputerWorkRepository.createQueryBuilder();
+		const queryBuilder = this.monthComputerWorkRepository.createQueryBuilder("monthComputerWork");
 
 		queryBuilder
 			.select(['monthComputerWork.id', 'monthComputerWork.date', 'monthComputerWork.operatingSystem'])
-			.from(MonthComputerWork, 'monthComputerWork')
+			//.from(MonthComputerWork, 'monthComputerWork')
             .leftJoin('monthComputerWork.computer', 'computer')
             .addSelect([
                 'computer.id',
@@ -88,7 +88,23 @@ export class MonthComputerWorkService  {
 			queryBuilder.skip(options.pagination.page * options.pagination.size).take(options.pagination.size);
 		}
 		
-		return await queryBuilder.getMany();
+		const entities = await queryBuilder.getMany();
+		const entitiesCount = await queryBuilder.getCount();
+		if(options.pagination) {
+			const pageCount = Math.floor(entitiesCount / options.pagination.size);
+			return {
+				meta: {
+					page: +options.pagination.page,
+					maxPage: pageCount,
+					entitiesCount: pageCount === +options.pagination.page ? (entitiesCount % +options.pagination.size) : +options.pagination.size,
+				},
+				entities: entities,
+			};
+		}
+		return {
+			meta: null,
+			entities: entities,
+		};
 	}
 
 	public async readById(

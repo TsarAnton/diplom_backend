@@ -1,4 +1,5 @@
-import { IPaginationOptions } from "./common/pagination-options";
+import { MonthComputerWork } from "../entities/month-computer-work.entity";
+import { IPaginationOptions, IPaginationResult } from "./common/pagination-options";
 import { ISortingOptions } from "./common/sorting-options";
 
 export interface IMonthComputerWorkOptions {
@@ -12,4 +13,9 @@ export interface IMonthComputerWorkOptions {
     }
     sorting?: ISortingOptions;
     pagination?: IPaginationOptions;
+}
+
+export class MonthComputerWorkPaginationResult {
+    meta: IPaginationResult;
+    entities: MonthComputerWork[];
 }

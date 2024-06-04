@@ -3,6 +3,7 @@ import { Log } from '../entities/log.entity';
 import { LogService } from '../services/log.service';
 import { ComputerService } from '../services/computer.service';
 import { CreateLogDto, UpdateLogDto, ReadAllLogDto, ReadLogDto } from '../dto/log.dto';
+import { LogPaginationResult } from '../types/log.options';
 
 @Controller('logsWindows')
 export class LogController {
@@ -14,7 +15,7 @@ export class LogController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  getAllAction(@Query() logOptions: ReadAllLogDto): Promise<Log[]> {
+  getAllAction(@Query() logOptions: ReadAllLogDto): Promise<LogPaginationResult> {
     const { pagination, sorting, ...filter } = logOptions;
     return this.logService.readAll({
       pagination,

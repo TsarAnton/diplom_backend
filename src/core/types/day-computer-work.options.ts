@@ -1,4 +1,5 @@
-import { IPaginationOptions } from "./common/pagination-options";
+import { DayComputerWork } from "../entities/day-computer-work.entity";
+import { IPaginationOptions, IPaginationResult } from "./common/pagination-options";
 import { ISortingOptions } from "./common/sorting-options";
 
 export interface IDayComputerWorkOptions {
@@ -12,4 +13,9 @@ export interface IDayComputerWorkOptions {
     }
     sorting?: ISortingOptions;
     pagination?: IPaginationOptions;
+}
+
+export class DayComputerWorkPaginationResult {
+    meta: IPaginationResult;
+    entities: DayComputerWork[];
 }

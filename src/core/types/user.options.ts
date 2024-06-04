@@ -1,4 +1,5 @@
-import { IPaginationOptions } from "./common/pagination-options";
+import { User } from "../entities/user.entity";
+import { IPaginationOptions, IPaginationResult } from "./common/pagination-options";
 import { ISortingOptions } from "./common/sorting-options";
 
 export interface IUserOptions {
@@ -7,4 +8,9 @@ export interface IUserOptions {
     }
     sorting?: ISortingOptions;
     pagination?: IPaginationOptions;
+}
+
+export class UserPaginationResult {
+    meta: IPaginationResult;
+    entities: User[];
 }

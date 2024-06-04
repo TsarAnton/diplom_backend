@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Role } from '../entities/role.entity';
-import { IRoleOptions } from '../types/role.options';
+import { IRoleOptions, RolePaginationResult } from '../types/role.options';
 import { CreateRoleDto, UpdateRoleDto, ReadRoleDto } from '../dto/role.dto';
 
 @Injectable()
@@ -25,13 +25,13 @@ export class RoleService  {
 
 	public async readAll(
         options: IRoleOptions,
-    ): Promise<Role[]> {
+    ): Promise<RolePaginationResult> {
 
-		const queryBuilder = this.roleRepository.createQueryBuilder();
+		const queryBuilder = this.roleRepository.createQueryBuilder("role");
 
 		queryBuilder
-			.select(['role.id', 'role.name'])
-			.from(Role, 'role');
+			.select(['role.id', 'role.name']);
+			//.from(Role, 'role');
 
 		if (options.filter) {
 			if (options.filter.name) {
@@ -49,7 +49,23 @@ export class RoleService  {
 			queryBuilder.skip(options.pagination.page * options.pagination.size).take(options.pagination.size);
 		}
 
-		return await queryBuilder.getMany();
+		const entities = await queryBuilder.getMany();
+		const entitiesCount = await queryBuilder.getCount();
+		if(options.pagination) {
+			const pageCount = Math.floor(entitiesCount / options.pagination.size);
+			return {
+				meta: {
+					page: +options.pagination.page,
+					maxPage: pageCount,
+					entitiesCount: pageCount === +options.pagination.page ? (entitiesCount % +options.pagination.size) : +options.pagination.size,
+				},
+				entities: entities,
+			};
+		}
+		return {
+			meta: null,
+			entities: entities,
+		};
 	}
 
 	public async readById(
@@ -77,7 +93,7 @@ export class RoleService  {
         	throw new NotFoundException(`Role with id=${id} does not exist`);
       	}
       	if(updateRoleDto.name) {
-        	const existingRoles = await this.readAll({ filter: { name: updateRoleDto.name } });
+        	const existingRoles = (await this.readAll({ filter: { name: updateRoleDto.name } })).entities;
         	if(existingRoles.length !== 0 && (existingRoles.length > 1 || existingRoles[0].id != id)) {
           		throw new BadRequestException(`Role with name ${updateRoleDto.name} already exist`);
         	}

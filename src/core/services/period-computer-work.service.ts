@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { PeriodComputerWork } from '../entities/period-computer-work.entity';
-import { IPeriodComputerWorkOptions } from '../types/period-computer-work.options';
+import { IPeriodComputerWorkOptions, PeriodComputerWorkPaginationResult } from '../types/period-computer-work.options';
 import { CreatePeriodComputerWorkDto, UpdatePeriodComputerWorkDto, ReadPeriodComputerWorkDto } from '../dto/period-computer-work.dto';
 import { ComputerService } from './computer.service';
 import { StatisticsPeriod, StatisticsPeriodMember } from '../types/statistics.options';
@@ -32,12 +32,12 @@ export class PeriodComputerWorkService  {
 
 	public async readAll(
         options: IPeriodComputerWorkOptions,
-    ): Promise<PeriodComputerWork[]> {
-		const queryBuilder = this.periodComputerWorkRepository.createQueryBuilder();
+    ): Promise<PeriodComputerWorkPaginationResult> {
+		const queryBuilder = this.periodComputerWorkRepository.createQueryBuilder("periodComputerWork");
 
 		queryBuilder
 			.select(['periodComputerWork.id', 'periodComputerWork.dateStart', 'periodComputerWork.dateEnd', 'periodComputerWork.loginId', 'periodComputerWork.operatingSystem'])
-			.from(PeriodComputerWork, 'periodComputerWork')
+			//.from(PeriodComputerWork, 'periodComputerWork')
             .leftJoin('periodComputerWork.computer', 'computer')
             .addSelect([
                 'computer.id',
@@ -89,7 +89,23 @@ export class PeriodComputerWorkService  {
 			queryBuilder.skip(options.pagination.page * options.pagination.size).take(options.pagination.size);
 		}
 		
-		return await queryBuilder.getMany();
+		const entities = await queryBuilder.getMany();
+		const entitiesCount = await queryBuilder.getCount();
+		if(options.pagination) {
+			const pageCount = Math.floor(entitiesCount / options.pagination.size);
+			return {
+				meta: {
+					page: +options.pagination.page,
+					maxPage: pageCount,
+					entitiesCount: pageCount === +options.pagination.page ? (entitiesCount % +options.pagination.size) : +options.pagination.size,
+				},
+				entities: entities,
+			};
+		}
+		return {
+			meta: null,
+			entities: entities,
+		};
 	}
 
 	public async readById(
@@ -187,8 +203,6 @@ export class PeriodComputerWorkService  {
 		}
 
 		queryBuilder.orderBy('computer.id', 'ASC');
-
-		console.log(queryBuilder.getSql());
 
 		let computersArray = await queryBuilder.getMany();
 

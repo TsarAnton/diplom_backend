@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Log } from '../entities/log.entity';
-import { ILogOptions } from '../types/log.options';
+import { ILogOptions, LogPaginationResult } from '../types/log.options';
 import { CreateLogDto, UpdateLogDto, ReadLogDto } from '../dto/log.dto';
 import { ComputerService } from './computer.service';
 
@@ -28,13 +28,13 @@ export class LogService  {
 
 	public async readAll(
         options: ILogOptions,
-    ): Promise<Log[]> {
+    ): Promise<LogPaginationResult> {
 
-		const queryBuilder = this.logRepository.createQueryBuilder();
+		const queryBuilder = this.logRepository.createQueryBuilder("log");
 
 		queryBuilder
 			.select(['log.id', 'log.date', 'log.loginId', 'log.operatingSystem', 'log.type'])
-			.from(Log, 'log')
+			//.from(Log, 'log')
             .leftJoin('log.computer', 'computer')
             .addSelect([
                 'computer.id',
@@ -96,7 +96,23 @@ export class LogService  {
 			queryBuilder.skip(options.pagination.page * options.pagination.size).take(options.pagination.size);
 		}
 		
-		return await queryBuilder.getMany();
+		const entities = await queryBuilder.getMany();
+		const entitiesCount = await queryBuilder.getCount();
+		if(options.pagination) {
+			const pageCount = Math.floor(entitiesCount / options.pagination.size);
+			return {
+				meta: {
+					page: +options.pagination.page,
+					maxPage: pageCount,
+					entitiesCount: pageCount === +options.pagination.page ? (entitiesCount % +options.pagination.size) : +options.pagination.size,
+				},
+				entities: entities,
+			};
+		}
+		return {
+			meta: null,
+			entities: entities,
+		};
 	}
 
 	public async readById(

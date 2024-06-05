@@ -8,7 +8,7 @@ import { ComputerService } from './services/computer.service';
 import { LogService } from './services/log.service';
 
 import { ComputerController } from './controllers/computer.controller';
-import { LogController } from './controllers/log-windows.controller';
+import { LogController } from './controllers/log.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { DayComputerWorkController } from './controllers/day-computer-work.controller';
 import { MonthComputerWorkController } from './controllers/month-computer-work.controller';

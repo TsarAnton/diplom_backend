@@ -5,7 +5,7 @@ import { ComputerService } from '../services/computer.service';
 import { CreateLogDto, UpdateLogDto, ReadAllLogDto, ReadLogDto } from '../dto/log.dto';
 import { LogPaginationResult } from '../types/log.options';
 
-@Controller('logsWindows')
+@Controller('logs')
 export class LogController {
   constructor(
     private readonly logService: LogService,

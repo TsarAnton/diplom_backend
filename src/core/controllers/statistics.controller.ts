@@ -57,7 +57,8 @@ export class StatisticsController {
     }
 
     let dateStart = new Date(readStatisticsDto.dateStart);
-    let dateEnd = new Date(readStatisticsDto.dateEnd)
+    let dateEnd = new Date(readStatisticsDto.dateEnd);
+    const dateEndCopy = new Date(dateEnd.getTime());
 
     let datesYear = [];
     let datesMonth = [];
@@ -142,7 +143,7 @@ export class StatisticsController {
     
     let statisticsHours = new StatisticsHours;
     statisticsHours.dateStart = dateStart;
-    statisticsHours.dateEnd = dateEnd;
+    statisticsHours.dateEnd = dateEndCopy;
     statisticsHours.computers = Array.from(computersMap, ([name, value]) => (value));
     //statisticsHours.meta = null;
     if(readStatisticsDto.sorting) {

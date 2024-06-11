@@ -50,7 +50,7 @@ export class UserService  {
 				role: el
 			})))
 			.execute();
-		console.log(createdUser);
+		//console.log(createdUser);
 		return createdUser;
 	}
 

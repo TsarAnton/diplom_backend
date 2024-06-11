@@ -24,7 +24,7 @@ export class StatisticsController {
     ){
   }
 
-  @UseGuards(AuthGuard("jwt"))
+//   @UseGuards(AuthGuard("jwt"))
   @Get('/periods')
   @HttpCode(HttpStatus.OK)
   getPeriodsAction(@Query() readStatisticsDto: ReadStatisticsDto): Promise<StatisticsPeriod> {
@@ -43,7 +43,7 @@ export class StatisticsController {
     });
   }
 
-  @UseGuards(AuthGuard("jwt"))
+//   @UseGuards(AuthGuard("jwt"))
   @Get('/hours')
   @HttpCode(HttpStatus.OK)
   async getHoursAction(@Query() readStatisticsDto: ReadStatisticsDto): Promise<StatisticsHours> {
@@ -194,6 +194,7 @@ export class StatisticsController {
   @HttpCode(HttpStatus.OK)
   async createStatisticsAction(@Body() packet: CreateStatisticsDto): Promise<CreateStatisticsResult> {
     //получили компьютер, если такого нет - создали
+    packet.type = Boolean(packet.type);
     const readComputerOptions = { 
         macAddress: packet.macAddress,
     };
@@ -338,7 +339,8 @@ export class StatisticsController {
             });
         }
         if(!packet.type) {
-            await this.dayComputerWorkService.update(dayComputerWork.id, { hours: dayComputerWork.hours + el.hours });
+            let hoursFixed = Number(Number(el.hours).toFixed(4));
+            await this.dayComputerWorkService.update(dayComputerWork.id, { hours: dayComputerWork.hours + hoursFixed });
         }
     }
     for(let el of monthHours) {
@@ -355,7 +357,8 @@ export class StatisticsController {
             });
         }
         if(!packet.type) {
-            await this.monthComputerWorkService.update(monthComputerWork.id, { hours: monthComputerWork.hours + el.hours });
+            let hoursFixed = Number(Number(el.hours).toFixed(4));
+            await this.monthComputerWorkService.update(monthComputerWork.id, { hours: monthComputerWork.hours + hoursFixed });
         }
     }
     for(let el of yearHours) {
@@ -372,7 +375,8 @@ export class StatisticsController {
             });
         }
         if(!packet.type) {
-            await this.yearComputerWorkService.update(yearComputerWork.id, { hours: yearComputerWork.hours + el.hours });
+            let hoursFixed = Number(Number(el.hours).toFixed(4));
+            await this.yearComputerWorkService.update(yearComputerWork.id, { hours: yearComputerWork.hours + hoursFixed });
         }
     }
     return { status: "OK" };

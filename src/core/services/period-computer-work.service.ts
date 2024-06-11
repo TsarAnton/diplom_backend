@@ -9,6 +9,7 @@ import { ComputerService } from './computer.service';
 import { StatisticsPeriod, StatisticsPeriodMember } from '../types/statistics.options';
 import { ReadStatisticsDto } from '../dto/statistics.dto';
 import { getDateDiffHours } from '../types/date.functions';
+import { Computer } from '../entities/computer.entity';
 
 @Injectable()
 export class PeriodComputerWorkService  {
@@ -16,6 +17,8 @@ export class PeriodComputerWorkService  {
         @InjectRepository(PeriodComputerWork)
         private periodComputerWorkRepository: Repository<PeriodComputerWork>,
 		private computerService: ComputerService,
+		@InjectRepository(Computer)
+        private computerRepository: Repository<Computer>,
     ) {}
 
 	public async create(
@@ -172,24 +175,23 @@ export class PeriodComputerWorkService  {
 	public async readWorkPeriods(
         readStatisticsDto: ReadStatisticsDto,
     ): Promise<StatisticsPeriod> {
-		const queryBuilder = this.periodComputerWorkRepository.createQueryBuilder();
+		const queryBuilder = this.computerRepository.createQueryBuilder("computer");
 
 		queryBuilder
-			.select(['periodComputerWork.id', 'periodComputerWork.dateStart', 'periodComputerWork.dateEnd', 'periodComputerWork.loginId', 'periodComputerWork.operatingSystem'])
-			.from(PeriodComputerWork, 'periodComputerWork')
-            .leftJoin('periodComputerWork.computer', 'computer')
-            .addSelect([
-                'computer.id',
-                'computer.name',
-                'computer.ipAddress',
-                'computer.macAddress',
-                'computer.audince',
-            ])
-			.where('periodComputerWork.dateEnd IS NOT NULL')
-			.andWhere('(periodComputerWork.dateStart >= :dateStart OR periodComputerWork.dateEnd <= :dateEnd)', {
-				dateStart: readStatisticsDto.dateStart,
-				dateEnd: readStatisticsDto.dateEnd
-			});
+			.select(['computer.id', 'computer.name', 'computer.macAddress', 'computer.ipAddress', 'computer.audince'])
+			//.from(Computer, "computer")
+			.leftJoin('computer.periodsComputerWork', 'periodsComputerWork')
+			.addSelect([
+				'periodsComputerWork.dateStart',
+				'periodsComputerWork.dateEnd',
+				'periodsComputerWork.loginId',
+				'periodsComputerWork.operatingSystem',
+			])
+			.where('periodsComputerWork.dateEnd IS NOT NULL')
+		 	.andWhere('(periodsComputerWork.dateStart >= :dateStart OR periodsComputerWork.dateEnd <= :dateEnd)', {
+		 		dateStart: readStatisticsDto.dateStart,
+		 		dateEnd: readStatisticsDto.dateEnd
+		 	});
 
         if (readStatisticsDto.operatingSystem) {
 			queryBuilder.andWhere('periodComputerWork.operatingSystem LIKE :operatingSystem', {
@@ -202,103 +204,52 @@ export class PeriodComputerWorkService  {
 			});
 		}
 
-		queryBuilder.orderBy('computer.id', 'ASC');
-
-		let computersArray = await queryBuilder.getMany();
-
-		if(computersArray.length === 0) {
-			return null;
-		}
-
-		const dateStart = new Date(readStatisticsDto.dateStart);
-		const dateEnd = new Date(readStatisticsDto.dateEnd);
-
-		let statisticsPeriod = new StatisticsPeriod();
-		statisticsPeriod.dateStart = dateStart;
-		statisticsPeriod.dateEnd = dateEnd;
-		statisticsPeriod.computers = [];
-
-		let statisticsPeriodMember = new StatisticsPeriodMember();
-		let currentComputerId = computersArray[0].computer.id;
-		statisticsPeriodMember.computer = computersArray[0].computer;
-		statisticsPeriodMember.periods = [];
-
-		for(let el of computersArray) {
-			if((new Date(el.dateEnd)).getTime() > (new Date(readStatisticsDto.dateEnd)).getTime()) {
-				el.dateEnd = readStatisticsDto.dateEnd;
-			}
-			if((new Date(el.dateStart)).getTime() < (new Date(readStatisticsDto.dateStart)).getTime()) {
-				el.dateStart = readStatisticsDto.dateStart;
-			}
-			if(el.computer.id !== currentComputerId) {
-				statisticsPeriod.computers.push(statisticsPeriodMember);
-
-				statisticsPeriodMember = new StatisticsPeriodMember();
-				statisticsPeriodMember.computer = el.computer;
-				statisticsPeriodMember.periods = [];
-
-				currentComputerId = el.computer.id;
-				
-			}
-			statisticsPeriodMember.periods.push({ 
-				dateStart: el.dateStart, 
-				dateEnd: el.dateEnd, 
-				hours: getDateDiffHours(new Date(el.dateStart), new Date(el.dateEnd)),
-				operatingSystem: el.operatingSystem,
-			});
-		}
-		statisticsPeriod.computers.push(statisticsPeriodMember);
-
 		if(readStatisticsDto.sorting) {
-			const buff = readStatisticsDto.sorting.column.split(".");
-			const sortColumn = buff[0];
-			const sortProp = buff[1];
-
-			if(sortColumn === "computer") {
-				statisticsPeriod.computers.sort(function(a, b) {
-					if(a.computer[sortProp] > b.computer[sortProp]) {
-						return readStatisticsDto.sorting.direction === "ASC" ? 1 : -1;
-					} else if(a.computer[sortProp] < b.computer[sortProp]) {
-						return readStatisticsDto.sorting.direction === "ASC" ? -1 : 1;
-					}
-					return 0;
-				});
-			} else if(sortColumn === "periods") {
-				for(let computer of statisticsPeriod.computers) {
-					computer.periods.sort(function(a, b) {
-						if(a[sortProp] > b[sortProp]) {
-							return readStatisticsDto.sorting.direction === "ASC" ? 1 : -1;
-						} else if(a[sortProp] < b[sortProp]) {
-							return readStatisticsDto.sorting.direction === "ASC" ? -1 : 1;
-						}
-						return 0;
-					});
-				}
-				statisticsPeriod.computers.sort(function(a, b) {
-					if(a.periods[0][sortProp] > b.periods[0][sortProp]) {
-						return readStatisticsDto.sorting.direction === "ASC" ? 1 : -1;
-					} else if(a.periods[0][sortProp] < b.periods[0][sortProp]) {
-						return readStatisticsDto.sorting.direction === "ASC" ? -1 : 1;
-					}
-					return 0;
-				});
-			}		
+			queryBuilder.orderBy(readStatisticsDto.sorting.column, readStatisticsDto.sorting.direction);
 		}
 
-		const entitiesCount = statisticsPeriod.computers.length;
+		if(readStatisticsDto.pagination) {
+			queryBuilder.skip(readStatisticsDto.pagination.page * readStatisticsDto.pagination.size).take(readStatisticsDto.pagination.size);
+		}
+
+		const entities = await queryBuilder.getMany();
+		const entitiesCount = await queryBuilder.getCount();
+
+		const arrayPeriod = entities.map(function(el) {
+			const computer = new Computer;
+			computer.id = el.id;
+			computer.name = el.name;
+			computer.ipAddress = el.ipAddress;
+			computer.macAddress = el.macAddress;
+			computer.audince = el.audince;
+			return {
+				computer: computer,
+				periods: el.periodsComputerWork.map(el1 => ({
+					dateStart: el1.dateStart,
+					dateEnd: el1.dateEnd,
+					hours: Number(getDateDiffHours(new Date(el1.dateStart), new Date(el1.dateEnd)).toFixed(4)),
+					operatingSystem: el1.operatingSystem,
+				}))
+			}
+		});
 		if(readStatisticsDto.pagination) {
 			const pageCount = Math.floor(entitiesCount / readStatisticsDto.pagination.size) - ((entitiesCount % +readStatisticsDto.pagination.size === 0) ? 1: 0);
-			const pos = readStatisticsDto.pagination.page * readStatisticsDto.pagination.size;
-			statisticsPeriod.computers = statisticsPeriod.computers.slice(pos, pos + readStatisticsDto.pagination.size);
-			statisticsPeriod.meta = {
-				page: +readStatisticsDto.pagination.page,
-				maxPage: pageCount,
-				entitiesCount: pageCount === +readStatisticsDto.pagination.page ? (entitiesCount % +readStatisticsDto.pagination.size) : +readStatisticsDto.pagination.size,
+			return {
+				dateStart: readStatisticsDto.dateStart,
+				dateEnd: readStatisticsDto.dateEnd,
+				meta: {
+					page: +readStatisticsDto.pagination.page,
+					maxPage: pageCount,
+					entitiesCount: pageCount === +readStatisticsDto.pagination.page ? (entitiesCount % +readStatisticsDto.pagination.size) : +readStatisticsDto.pagination.size,
+				},
+				computers: arrayPeriod,
 			};
-		} else {
-			statisticsPeriod.meta = null;
 		}
-
-		return statisticsPeriod;
+		return {
+			dateStart: readStatisticsDto.dateStart,
+			dateEnd: readStatisticsDto.dateEnd,
+			meta: null,
+			computers: arrayPeriod,
+		};
 	}
 }

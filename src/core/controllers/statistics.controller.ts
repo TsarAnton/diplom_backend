@@ -24,7 +24,7 @@ export class StatisticsController {
     ){
   }
 
-//   @UseGuards(AuthGuard("jwt"))
+  @UseGuards(AuthGuard("jwt"))
   @Get('/periods')
   @HttpCode(HttpStatus.OK)
   getPeriodsAction(@Query() readStatisticsDto: ReadStatisticsDto): Promise<StatisticsPeriod> {
@@ -43,7 +43,7 @@ export class StatisticsController {
     });
   }
 
-//   @UseGuards(AuthGuard("jwt"))
+  @UseGuards(AuthGuard("jwt"))
   @Get('/hours')
   @HttpCode(HttpStatus.OK)
   async getHoursAction(@Query() readStatisticsDto: ReadStatisticsDto): Promise<StatisticsHours> {
@@ -218,28 +218,15 @@ export class StatisticsController {
         }
     }
 
-    const isWindows = packet.operatingSystem.includes("Windows");
-
-    if(isWindows) {
     //запись в таблицу логов
-        const logOptions = {
-            computerId: computer.id,
-            type: packet.type,
-            loginId: packet.loginId,
-            date: packet.date,
-            operatingSystem: packet.operatingSystem,
-        };
-        this.logService.create(logOptions);
-    } else {
-        const logOptions = {
-            computerId: computer.id,
-            type: packet.type,
-            loginId: "0",
-            date: packet.date,
-            operatingSystem: packet.operatingSystem,
-        };
-        this.logService.create(logOptions);
-    }
+    const logOptions = {
+        computerId: computer.id,
+        type: packet.type,
+        loginId: packet.loginId,
+        date: packet.date,
+        operatingSystem: packet.operatingSystem,
+    };
+    this.logService.create(logOptions);
 
     //запись в таблицу периодов
     const periodComputerWorkOptions = {
@@ -260,31 +247,17 @@ export class StatisticsController {
         monthHours.push({ month: getMonthStart(dateStart), hours: 0 });
         yearHours.push({ year: getYearStart(dateStart), hours: 0 });
     } else {
-        let dateStart = null;
-        let dateEnd = null;
-        if(isWindows) {
-            const existingPeriodComputerWork = await this.periodComputerWorkService.readOne({
-                computerId: computer.id,
-                operatingSystem: packet.operatingSystem,
-                loginId: packet.loginId,
-            });
-            if(existingPeriodComputerWork == null) {
-                throw new NotFoundException(`periodComputerWork with loginId=${packet.loginId}, operatingSystem=${packet.operatingSystem}, computerId=${computer.id} does not exist`);
-            }
-            const updatedComputerWork = await this.periodComputerWorkService.update(existingPeriodComputerWork.id, { dateEnd: packet.date });
-            dateStart = new Date(updatedComputerWork.dateStart);
-            dateEnd = new Date(updatedComputerWork.dateEnd);
-        } else {
-            dateStart = getDateDiff(new Date(packet.date), packet.time);
-            dateEnd = new Date(packet.date);
-            await this.periodComputerWorkService.create({
-                dateStart: dateStart,
-                dateEnd: dateEnd,
-                operatingSystem: packet.operatingSystem,
-                computerId: computer.id,
-                loginId: '0',
-            });
+        const existingPeriodComputerWork = await this.periodComputerWorkService.readOne({
+            computerId: computer.id,
+            operatingSystem: packet.operatingSystem,
+            loginId: packet.loginId,
+        });
+        if(existingPeriodComputerWork == null) {
+            throw new NotFoundException(`periodComputerWork with loginId=${packet.loginId}, operatingSystem=${packet.operatingSystem}, computerId=${computer.id} does not exist`);
         }
+        const updatedComputerWork = await this.periodComputerWorkService.update(existingPeriodComputerWork.id, { dateEnd: packet.date });
+        let dateStart = new Date(updatedComputerWork.dateStart);
+        let dateEnd = new Date(updatedComputerWork.dateEnd);
         if(getDayStart(dateStart).getTime() !== getDayStart(dateEnd).getTime()) {
             let currentDay = dateStart;
             let nextDay = getDayNext(dateStart);

@@ -188,7 +188,7 @@ export class PeriodComputerWorkService  {
 				'periodsComputerWork.operatingSystem',
 			])
 			.where('periodsComputerWork.dateEnd IS NOT NULL')
-		 	.andWhere('(periodsComputerWork.dateStart >= :dateStart OR periodsComputerWork.dateEnd <= :dateEnd)', {
+		 	.andWhere('(periodsComputerWork.dateStart >= :dateStart AND periodsComputerWork.dateStart <= :dateEnd) OR (periodsComputerWork.dateEnd <= :dateEnd AND periodsComputerWork.dateEnd >= :dateStart)', {
 		 		dateStart: readStatisticsDto.dateStart,
 		 		dateEnd: readStatisticsDto.dateEnd
 		 	});

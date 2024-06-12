@@ -87,8 +87,7 @@ export class StatisticsController {
                 const lastMonth = datesMonth[datesMonth.length - 1];
                 if(getMonthEnd(lastMonth).getTime() !== dateEnd.getTime()) {
 
-                    let currentDay = lastYear;
-                    currentDay = datesMonth.pop();
+                    let currentDay = datesMonth.pop();
 
                     while(currentDay.getTime() <= dateEnd.getTime()) {
                         datesDay.push(currentDay);
@@ -104,7 +103,7 @@ export class StatisticsController {
     }
 
     //выбор часов работы по оставшимся месяцам
-    if(getYearStart(dateStart).getTime() === dateStart.getTime()) {
+    if(getYearStart(dateStart).getTime() === dateStart.getTime() && getYearEnd(dateEnd).getTime() === dateEnd.getTime()) {
         datesYear.push(dateStart);
     } else {
         let nextMonth = getMonthNext(dateStart);
@@ -113,11 +112,21 @@ export class StatisticsController {
             nextMonth = getMonthNext(nextMonth);
         }
 
-        if(datesMonth.length !== 0) {
-            dateEnd = getMonthNext(dateStart);
+        if(dateEnd.getTime() === dateEndCopy.getTime()) {
+            const lastMonth = datesMonth[datesMonth.length - 1];
+            if(getMonthEnd(lastMonth).getTime() !== dateEnd.getTime()) {
+                let currentDay = datesMonth.pop();
+                while(currentDay.getTime() <= dateEnd.getTime()) {
+                    datesDay.push(currentDay);
+                    currentDay = getDayNext(currentDay);
+                }
+            }
         }
 
         if(getMonthStart(dateStart).getTime() !== dateStart.getTime()) {
+            if(datesMonth.length !== 0) {
+                dateEnd = getMonthNext(dateStart);
+            }
             datesDay.push(dateStart);
             let nextDay = getDayNext(dateStart);
             while(nextDay.getTime() <= dateEnd.getTime()) {

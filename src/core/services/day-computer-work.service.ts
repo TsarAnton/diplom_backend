@@ -178,25 +178,22 @@ export class DayComputerWorkService  {
 			.select(['computer.id', 'computer.name', 'computer.macAddress', 'computer.ipAddress', 'computer.audince']);
 
 			if(options.datesDay.length !== 0) {
-				queryBuilder.leftJoin('computer.daysComputerWork', 'daysComputerWork')
-				.where('daysComputerWork.date IN (:...dates)', {
-					dates: options.datesDay,
+				queryBuilder.leftJoin('computer.daysComputerWork', 'daysComputerWork', 'daysComputerWork.date IN (:...dates1)', {
+					dates1: options.datesDay,
 				})
-				.addSelect('daysComputerWork.hours');
+				.addSelect(['daysComputerWork.hours', 'daysComputerWork.date']);
 			}
 			if(options.datesMonth.length !== 0) {
-				queryBuilder.leftJoin('computer.monthsComputerWork', 'monthsComputerWork')
-				.andWhere('monthsComputerWork.date IN (:...dates)', {
-					dates: options.datesMonth,
+				queryBuilder.leftJoin('computer.monthsComputerWork', 'monthsComputerWork', 'monthsComputerWork.date IN (:...dates2)', {
+					dates2: options.datesMonth,
 				})
-				.addSelect('monthsComputerWork.hours');
+				.addSelect(['monthsComputerWork.hours', 'monthsComputerWork.date']);
 			}
 			if(options.datesYear.length !== 0) {
-				queryBuilder.leftJoin('computer.yearsComputerWork', 'yearsComputerWork')
-				.andWhere('yearsComputerWork.date IN (:...dates)', {
-					dates: options.datesYear,
+				queryBuilder.leftJoin('computer.yearsComputerWork', 'yearsComputerWork', 'yearsComputerWork.date IN (:...dates3)', {
+					dates3: options.datesYear,
 				})
-				.addSelect('yearsComputerWork.hours');
+				.addSelect(['yearsComputerWork.hours', 'yearsComputerWork.date']);
 			}
 
             if (options.operatingSystem) {
@@ -220,6 +217,8 @@ export class DayComputerWorkService  {
 
 		const entities = await queryBuilder.getMany();
 		const entitiesCount = await queryBuilder.getCount();
+
+		console.log(options);
 
 		const computersArray = entities.map(function(el) {
 			let computer = new Computer;

@@ -172,8 +172,6 @@ export class DayComputerWorkService  {
         options: ReadStatisticsHours,
     ): Promise<StatisticsHours> {
 
-		console.log(options);
-
 		const queryBuilder = this.computerRepository.createQueryBuilder("computer");
 
 		queryBuilder

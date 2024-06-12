@@ -34,9 +34,9 @@ export function getDateDiff(date: Date, hours: number) {
 }
 
 export function getYearEnd(date: Date) {
-    return new Date(date.getFullYear(), 11, 31);
+    return new Date(date.getFullYear(), 11, 31, 23, 59, 59);
 }
 
 export function getMonthEnd(date: Date) {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
 }

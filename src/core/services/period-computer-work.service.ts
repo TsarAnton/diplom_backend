@@ -179,7 +179,6 @@ export class PeriodComputerWorkService  {
 
 		queryBuilder
 			.select(['computer.id', 'computer.name', 'computer.macAddress', 'computer.ipAddress', 'computer.audince'])
-			//.from(Computer, "computer")
 			.leftJoin('computer.periodsComputerWork', 'periodsComputerWork')
 			.addSelect([
 				'periodsComputerWork.dateStart',
@@ -188,13 +187,10 @@ export class PeriodComputerWorkService  {
 				'periodsComputerWork.operatingSystem',
 			])
 			.where('periodsComputerWork.dateEnd IS NOT NULL')
-		 	.andWhere('(periodsComputerWork.dateStart >= :dateStart AND periodsComputerWork.dateStart <= :dateEnd) OR (periodsComputerWork.dateEnd <= :dateEnd AND periodsComputerWork.dateEnd >= :dateStart)', {
-		 		dateStart: readStatisticsDto.dateStart,
-		 		dateEnd: readStatisticsDto.dateEnd
-		 	});
 
+		console.log(readStatisticsDto);
         if (readStatisticsDto.operatingSystem) {
-			queryBuilder.andWhere('periodComputerWork.operatingSystem LIKE :operatingSystem', {
+			queryBuilder.andWhere('periodsComputerWork.operatingSystem LIKE :operatingSystem', {
 				operatingSystem: "%" + readStatisticsDto.operatingSystem + "%",
 			});
 		}
@@ -203,6 +199,11 @@ export class PeriodComputerWorkService  {
 				computers: readStatisticsDto.computers,
 			});
 		}
+
+		queryBuilder.andWhere('((periodsComputerWork.dateStart >= :dateStart AND periodsComputerWork.dateStart <= :dateEnd) OR (periodsComputerWork.dateEnd <= :dateEnd AND periodsComputerWork.dateEnd >= :dateStart))', {
+			dateStart: readStatisticsDto.dateStart,
+			dateEnd: readStatisticsDto.dateEnd
+		});
 
 		if(readStatisticsDto.sorting) {
 			queryBuilder.orderBy(readStatisticsDto.sorting.column, readStatisticsDto.sorting.direction);
@@ -215,6 +216,9 @@ export class PeriodComputerWorkService  {
 		const entities = await queryBuilder.getMany();
 		const entitiesCount = await queryBuilder.getCount();
 
+		const dateStart = new Date(readStatisticsDto.dateStart);
+		const dateEnd = new Date(readStatisticsDto.dateEnd);
+
 		const arrayPeriod = entities.map(function(el) {
 			const computer = new Computer;
 			computer.id = el.id;
@@ -224,12 +228,16 @@ export class PeriodComputerWorkService  {
 			computer.audince = el.audince;
 			return {
 				computer: computer,
-				periods: el.periodsComputerWork.map(el1 => ({
-					dateStart: el1.dateStart,
-					dateEnd: el1.dateEnd,
-					hours: Number(getDateDiffHours(new Date(el1.dateStart), new Date(el1.dateEnd)).toFixed(4)),
-					operatingSystem: el1.operatingSystem,
-				}))
+				periods: el.periodsComputerWork.map(function(el1) {
+					const realDateStart = dateStart.getTime() > el1.dateStart.getTime() ? dateStart : el1.dateStart;
+					const realDateEnd = dateEnd.getTime() < el1.dateEnd.getTime() ? dateEnd : el1.dateEnd;
+					return {
+						dateStart: realDateStart,
+						dateEnd: realDateEnd,
+						hours: Number(getDateDiffHours(realDateStart, realDateEnd).toFixed(4)),
+						operatingSystem: el1.operatingSystem,
+					}
+				}),
 			}
 		});
 		if(readStatisticsDto.pagination) {

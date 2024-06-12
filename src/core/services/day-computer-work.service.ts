@@ -7,7 +7,8 @@ import { DayComputerWorkPaginationResult, IDayComputerWorkOptions } from '../typ
 import { CreateDayComputerWorkDto, UpdateDayComputerWorkDto, ReadDayComputerWorkDto } from '../dto/day-computer-work.dto';
 import { ComputerService } from './computer.service';
 import { ReadStatisticsDto } from '../dto/statistics.dto';
-import { StatisticsHours, StatisticsHoursMember } from '../types/statistics.options';
+import { ReadStatisticsHours, StatisticsHours, StatisticsHoursMember } from '../types/statistics.options';
+import { Computer } from '../entities/computer.entity';
 
 @Injectable()
 export class DayComputerWorkService  {
@@ -15,6 +16,8 @@ export class DayComputerWorkService  {
         @InjectRepository(DayComputerWork)
         private dayComputerWorkRepository: Repository<DayComputerWork>,
 		private computerService: ComputerService,
+		@InjectRepository(Computer)
+        private computerRepository: Repository<Computer>,
     ) {}
 
 	public async create(
@@ -166,65 +169,94 @@ export class DayComputerWorkService  {
 	}
 
 	public async readWorkHours(
-        dates: Date[],
-		computerIds: number[],
-		operatingSystem: string,
-    ): Promise<StatisticsHoursMember[]> {
+        options: ReadStatisticsHours,
+    ): Promise<StatisticsHours> {
 
-		const queryBuilder = this.dayComputerWorkRepository.createQueryBuilder();
+		console.log(options);
+
+		const queryBuilder = this.computerRepository.createQueryBuilder("computer");
 
 		queryBuilder
-			.select('dayComputerWork.hours')
-			.from(DayComputerWork, 'dayComputerWork')
-            .leftJoin('dayComputerWork.computer', 'computer')
-            .addSelect([
-                'computer.id',
-                'computer.name',
-                'computer.ipAddress',
-                'computer.macAddress',
-                'computer.audince',
-            ])
-			.where('dayComputerWork.date IN (:...dates)', {
-				dates: dates,
-			});
+			.select(['computer.id', 'computer.name', 'computer.macAddress', 'computer.ipAddress', 'computer.audince']);
 
-            if (operatingSystem) {
+			if(options.datesDay.length !== 0) {
+				queryBuilder.leftJoin('computer.daysComputerWork', 'daysComputerWork')
+				.where('daysComputerWork.date IN (:...dates)', {
+					dates: options.datesDay,
+				})
+				.addSelect('daysComputerWork.hours');
+			}
+			if(options.datesMonth.length !== 0) {
+				queryBuilder.leftJoin('computer.monthsComputerWork', 'monthsComputerWork')
+				.andWhere('monthsComputerWork.date IN (:...dates)', {
+					dates: options.datesMonth,
+				})
+				.addSelect('monthsComputerWork.hours');
+			}
+			if(options.datesYear.length !== 0) {
+				queryBuilder.leftJoin('computer.yearsComputerWork', 'yearsComputerWork')
+				.andWhere('yearsComputerWork.date IN (:...dates)', {
+					dates: options.datesYear,
+				})
+				.addSelect('yearsComputerWork.hours');
+			}
+
+            if (options.operatingSystem) {
 				queryBuilder.andWhere('dayComputerWork.operatingSystem LIKE :operatingSystem', {
-					operatingSystem: "%" + operatingSystem + "%",
+					operatingSystem: "%" + options.operatingSystem + "%",
 				});
 			}
-			if(computerIds.length !== 0) {
+			if(options.computerIds.length !== 0) {
 				queryBuilder.andWhere('computer.id IN (:...computers)', {
-					computers: computerIds, //options.filter.computers.map(id => Number(id)),
+					computers: options.computerIds,
 			});
 		}
 
-		queryBuilder.orderBy('computer.id', 'ASC');
-
-		const computersArray = await queryBuilder.getMany();
-
-		if(computersArray.length === 0) {
-			return [];
+		if(options.sorting) {
+			queryBuilder.orderBy(options.sorting.column, options.sorting.direction);
 		}
 
-		let currentComputerId = computersArray[0].computer.id;
-		let statisticsHoursMember = new StatisticsHoursMember();
-		statisticsHoursMember.computer = computersArray[0].computer;
-		statisticsHoursMember.hours = 0;
+		if(options.pagination) {
+			queryBuilder.skip(options.pagination.page * options.pagination.size).take(options.pagination.size);
+		}
 
-		let result = [];
+		const entities = await queryBuilder.getMany();
+		const entitiesCount = await queryBuilder.getCount();
 
-		for(let el of computersArray) {
-			if(currentComputerId !== el.computer.id) {
-				result.push(statisticsHoursMember);
-				statisticsHoursMember = new StatisticsHoursMember();
-				statisticsHoursMember.computer = el.computer;
-				statisticsHoursMember.hours = 0;
+		const computersArray = entities.map(function(el) {
+			let computer = new Computer;
+			computer.name = el.name;
+			computer.macAddress = el.macAddress;
+			computer.ipAddress = el.ipAddress;
+			computer.audince = el.audince;
+			computer.id = el.id;
+			const dayHours = el.daysComputerWork ? el.daysComputerWork.reduce((acc, el1) => acc + Number(el1.hours), 0) : 0;
+			const monthHours = el.monthsComputerWork ? el.monthsComputerWork.reduce((acc, el1) => acc + Number(el1.hours), 0) : 0;
+			const yearHours = el.yearsComputerWork ? el.yearsComputerWork.reduce((acc, el1) => acc + Number(el1.hours), 0) : 0;
+ 			return {
+				computer: computer,
+				hours: dayHours + monthHours + yearHours,
 			}
-			statisticsHoursMember.hours += el.hours;
-		}
-		result.push(statisticsHoursMember);
+		});
 
-		return result;
+		if(options.pagination) {
+			const pageCount = Math.floor(entitiesCount / options.pagination.size) - ((entitiesCount % +options.pagination.size === 0) ? 1: 0);
+			return {
+				dateStart: options.dateStart,
+				dateEnd: options.dateEnd,
+				meta: {
+					page: +options.pagination.page,
+					maxPage: pageCount,
+					entitiesCount: pageCount === +options.pagination.page ? (entitiesCount % +options.pagination.size) : +options.pagination.size,
+				},
+				computers: computersArray,
+			};
+		}
+		return {
+			dateStart: options.dateStart,
+			dateEnd: options.dateEnd,
+			meta: null,
+			computers: computersArray,
+		};
 	}
 }

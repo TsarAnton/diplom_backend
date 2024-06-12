@@ -8,7 +8,7 @@ import { DayComputerWorkService } from '../services/day-computer-work.service';
 import { MonthComputerWorkService } from '../services/month-computer-work.service';
 import { YearComputerWorkService } from '../services/year-computer-work.service';
 import { CreateStatisticsResult, StatisticsHours, StatisticsPeriod } from '../types/statistics.options';
-import { getDateDiff, getDateDiffHours, getDayNext, getDayStart, getMonthNext, getMonthStart, getYearNext, getYearStart } from '../types/date.functions';
+import { getDateDiff, getDateDiffHours, getDayNext, getDayStart, getMonthEnd, getMonthNext, getMonthStart, getYearEnd, getYearNext, getYearStart } from '../types/date.functions';
 import { AuthGuard } from '@nestjs/passport';
 import { UpdateComputerDto } from '../dto/computer.dto';
 
@@ -47,7 +47,9 @@ export class StatisticsController {
   @Get('/hours')
   @HttpCode(HttpStatus.OK)
   async getHoursAction(@Query() readStatisticsDto: ReadStatisticsDto): Promise<StatisticsHours> {
+    
     let computersArray = [];
+
     if(readStatisticsDto.computers) {
         if(typeof readStatisticsDto.computers === "string") {
             computersArray.push(Number(readStatisticsDto.computers));
@@ -58,11 +60,12 @@ export class StatisticsController {
 
     let dateStart = new Date(readStatisticsDto.dateStart);
     let dateEnd = new Date(readStatisticsDto.dateEnd);
+
     const dateEndCopy = new Date(dateEnd.getTime());
 
     let datesYear = [];
     let datesMonth = [];
-    let datesDay = [dateStart];
+    let datesDay = [];
 
     let nextYear = getYearNext(dateStart);
     while(nextYear.getTime() <= dateEnd.getTime()) {
@@ -70,124 +73,76 @@ export class StatisticsController {
         nextYear = getYearNext(nextYear);
     }
 
-    let computersYearWork = [];
     if(datesYear.length !== 0) {
-        const currentYear = datesYear.pop()
-        let currentMonth = currentYear;
-        while(currentMonth.getTime() <= dateEnd.getTime()) {
-            datesMonth.push(currentMonth);
-            currentMonth = getMonthNext(currentMonth);
+        const lastYear = datesYear[datesYear.length - 1];
+        if(getYearEnd(lastYear).getTime() !== dateEnd.getTime()) {
+            
+            let currentMonth = datesYear.pop();
+            while(currentMonth.getTime() <= dateEnd.getTime()) {
+                datesMonth.push(currentMonth);
+                currentMonth = getMonthNext(currentMonth);
+            }
+
+            if(datesMonth.length !== 0) {
+                const lastMonth = datesMonth[datesMonth.length - 1];
+                if(getMonthEnd(lastMonth).getTime() !== dateEnd.getTime()) {
+
+                    let currentDay = lastYear;
+                    currentDay = datesMonth.pop();
+
+                    while(currentDay.getTime() <= dateEnd.getTime()) {
+                        datesDay.push(currentDay);
+                        currentDay = getDayNext(currentDay);
+                    }
+                }
+            }
         }
-        let currentDay = currentYear;
-        if(datesMonth.length !== 0) {
-            currentDay = datesMonth.pop();
-        }
-        while(currentDay.getTime() <= dateEnd.getTime()) {
-            datesDay.push(currentDay);
-            currentDay = getDayNext(currentDay);
-        }
-        if(datesYear.length !== 0) {
-            computersYearWork = await this.yearComputerWorkService.readWorkHours(datesYear, computersArray, readStatisticsDto.operatingSystem);
-        }
-        dateEnd = getYearNext(dateStart);
+    }
+
+    if(datesYear.length !== 0 || datesMonth.length !== 0 || datesDay.length !== 0) {
+        dateEnd = getYearEnd(dateStart);
     }
 
     //выбор часов работы по оставшимся месяцам
-    let nextMonth = getMonthNext(dateStart);
-    while(nextMonth.getTime() <= dateEnd.getTime()) {
-        datesMonth.push(nextMonth);
-        nextMonth = getMonthNext(nextMonth);
-    }
-
-    let computersMonthWork = [];
-    if(datesMonth.length !== 0) {
-        computersMonthWork = await this.monthComputerWorkService.readWorkHours(datesMonth, computersArray, readStatisticsDto.operatingSystem);
-        dateEnd = getMonthNext(dateStart);
-    }
-
-    let nextDay = getDayNext(dateStart);
-    while(nextDay.getTime() <= dateEnd.getTime()) {
-        datesDay.push(nextDay);
-        nextDay = getDayNext(nextDay);
-    }
-
-    let computersDayWork = [];
-    if(datesDay.length !== 0) {
-        computersDayWork = await this.dayComputerWorkService.readWorkHours(datesDay, computersArray, readStatisticsDto.operatingSystem);
-        dateEnd = getDayNext(dateStart);
-    }
-
-    //суммируем часы работы по компьютерам
-    let computersMap = new Map();
-    for(let el of computersDayWork) {
-        if(computersMap.get(el.computer.id) == undefined) {
-            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours });
-        } else {
-            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours + computersMap.get(el.computer.id).hours });
+    if(getYearStart(dateStart).getTime() === dateStart.getTime()) {
+        datesYear.push(dateStart);
+    } else {
+        let nextMonth = getMonthNext(dateStart);
+        while(nextMonth.getTime() <= dateEnd.getTime()) {
+            datesMonth.push(nextMonth);
+            nextMonth = getMonthNext(nextMonth);
         }
-    }
-    for(let el of computersMonthWork) {
-        if(computersMap.get(el.computer.id) == undefined) {
-            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours });
-        } else {
-            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours + computersMap.get(el.computer.id).hours });
+
+        if(datesMonth.length !== 0) {
+            dateEnd = getMonthNext(dateStart);
         }
-    }
-    for(let el of computersYearWork) {
-        if(computersMap.get(el.computer.id) == undefined) {
-            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours });
-        } else {
-            computersMap.set(el.computer.id, { computer: el.computer, hours: el.hours + computersMap.get(el.computer.id).hours });
-        }
-    }
-    
-    let statisticsHours = new StatisticsHours;
-    statisticsHours.dateStart = dateStart;
-    statisticsHours.dateEnd = dateEndCopy;
-    statisticsHours.computers = Array.from(computersMap, ([name, value]) => (value));
-    //statisticsHours.meta = null;
-    if(readStatisticsDto.sorting) {
-        const buff = readStatisticsDto.sorting.column.split(".");
-        const sortColumn = buff[0];
-        if(buff.length == 2) {
-            const sortProp = buff[1];
-            if(sortColumn === "computer") {
-                statisticsHours.computers.sort(function(a, b) {
-                    if(a.computer[sortProp] > b.computer[sortProp]) {
-                        return readStatisticsDto.sorting.direction === "ASC" ? 1 : -1;
-                    } else if(a.computer[sortProp] < b.computer[sortProp]) {
-                        return readStatisticsDto.sorting.direction === "ASC" ? -1 : 1;
-                    }
-                    return 0;
-                });
+
+        if(getMonthStart(dateStart).getTime() !== dateStart.getTime()) {
+            datesDay.push(dateStart);
+            let nextDay = getDayNext(dateStart);
+            while(nextDay.getTime() <= dateEnd.getTime()) {
+                datesDay.push(nextDay);
+                nextDay = getDayNext(nextDay);
             }
-        } else if(sortColumn === "hours") {
-            statisticsHours.computers.sort(function(a, b) {
-                if(a.hours > b.hours) {
-                    return readStatisticsDto.sorting.direction === "ASC" ? 1 : -1;
-                } else if(a.hours < b.hours) {
-                    return readStatisticsDto.sorting.direction === "ASC" ? -1 : 1;
-                }
-                return 0;
-            });
+            datesDay.pop();
+        } else {
+            datesMonth.push(dateStart);
         }
     }
 
-    const entitiesCount = statisticsHours.computers.length;
-	if(readStatisticsDto.pagination) {
-		const pageCount = Math.floor(entitiesCount / readStatisticsDto.pagination.size) - ((entitiesCount % +readStatisticsDto.pagination.size === 0) ? 1: 0);
-		const pos = readStatisticsDto.pagination.page * readStatisticsDto.pagination.size;
-		statisticsHours.computers = statisticsHours.computers.slice(pos, pos + readStatisticsDto.pagination.size);
-		statisticsHours.meta = {
-			page: +readStatisticsDto.pagination.page,
-			maxPage: pageCount,
-			entitiesCount: pageCount === +readStatisticsDto.pagination.page ? (entitiesCount % +readStatisticsDto.pagination.size) : +readStatisticsDto.pagination.size,
-		};
-	} else {
-		statisticsHours.meta = null;
-	}
-    
-    return statisticsHours;
+    const computersWork = await this.dayComputerWorkService.readWorkHours({
+        datesDay: datesDay,
+        datesMonth: datesMonth,
+        datesYear: datesYear,
+        dateStart: dateStart,
+        dateEnd: dateEnd,
+        operatingSystem: readStatisticsDto.operatingSystem,
+        computerIds: computersArray,
+        sorting: readStatisticsDto.sorting,
+        pagination: readStatisticsDto.pagination,
+    });
+
+    return computersWork;
   }
 
   @Post()
@@ -242,7 +197,9 @@ export class StatisticsController {
 
     if(packet.type) {
         const createdPeriodComputerWork = await this.periodComputerWorkService.create(periodComputerWorkOptions);
+        
         const dateStart = new Date(createdPeriodComputerWork.dateStart);
+       
         dayHours.push({ day: getDayStart(dateStart), hours: 0 });
         monthHours.push({ month: getMonthStart(dateStart), hours: 0 });
         yearHours.push({ year: getYearStart(dateStart), hours: 0 });
@@ -252,45 +209,58 @@ export class StatisticsController {
             operatingSystem: packet.operatingSystem,
             loginId: packet.loginId,
         });
+
         if(existingPeriodComputerWork == null) {
             throw new NotFoundException(`periodComputerWork with loginId=${packet.loginId}, operatingSystem=${packet.operatingSystem}, computerId=${computer.id} does not exist`);
         }
+        
         const updatedComputerWork = await this.periodComputerWorkService.update(existingPeriodComputerWork.id, { dateEnd: packet.date });
-        let dateStart = new Date(updatedComputerWork.dateStart);
-        let dateEnd = new Date(updatedComputerWork.dateEnd);
+        
+        const dateStart = new Date(updatedComputerWork.dateStart);
+        const dateEnd = new Date(updatedComputerWork.dateEnd);
+
         if(getDayStart(dateStart).getTime() !== getDayStart(dateEnd).getTime()) {
             let currentDay = dateStart;
             let nextDay = getDayNext(dateStart);
+
             while(nextDay < dateEnd) {
                 dayHours.push({ hours: getDateDiffHours(currentDay, nextDay), day: getDayStart(currentDay) });
                 currentDay = nextDay;
                 nextDay = getDayNext(currentDay);
             }
+
             dayHours.push({ hours: getDateDiffHours(currentDay, dateEnd), day: currentDay });
+
         } else {
+
             dayHours.push({ hours: getDateDiffHours(dateStart, dateEnd), day: getDayStart(dateStart) });
+
         }
         if(getMonthStart(dateStart).getTime() !== getMonthStart(dateEnd).getTime()) {
             let currentMonth = dateStart;
             let nextMonth = getMonthNext(dateStart);
+
             while(nextMonth < dateEnd) {
                 monthHours.push({ hours: getDateDiffHours(currentMonth, nextMonth), month: getMonthStart(currentMonth) });
                 currentMonth = nextMonth;
                 nextMonth = getMonthNext(currentMonth);
             }
+
             monthHours.push({ hours: getDateDiffHours(currentMonth, dateEnd), month: currentMonth });
+
         } else {
             monthHours.push({ hours: getDateDiffHours(dateStart, dateEnd), month: getMonthStart(dateStart) });
         }
+
         if(getYearStart(dateStart).getTime() !== getYearStart(dateEnd).getTime()) {
-            let currentYear = dateStart;
+            let lastYear = dateStart;
             let nextYear = getYearNext(dateStart);
             while(nextYear < dateEnd) {
-                yearHours.push({ hours: getDateDiffHours(currentYear, nextYear), year: getYearStart(currentYear) });
-                currentYear = nextYear;
-                nextYear = getYearNext(currentYear);
+                yearHours.push({ hours: getDateDiffHours(lastYear, nextYear), year: getYearStart(lastYear) });
+                lastYear = nextYear;
+                nextYear = getYearNext(lastYear);
             }
-            yearHours.push({ hours: getDateDiffHours(currentYear, dateEnd), year: currentYear });
+            yearHours.push({ hours: getDateDiffHours(lastYear, dateEnd), year: lastYear });
         } else {
             yearHours.push({ hours: getDateDiffHours(dateStart, dateEnd), year: getYearStart(dateStart) });
         }

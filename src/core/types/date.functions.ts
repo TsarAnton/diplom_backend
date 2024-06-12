@@ -32,3 +32,11 @@ export function getDateDiffHours(dateStart: Date, dateEnd: Date): number {
 export function getDateDiff(date: Date, hours: number) {
     return new Date(date.getTime() - hours * 3600000);
 }
+
+export function getYearEnd(date: Date) {
+    return new Date(date.getFullYear(), 11, 31);
+}
+
+export function getMonthEnd(date: Date) {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+}

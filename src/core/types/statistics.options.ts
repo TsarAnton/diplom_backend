@@ -5,6 +5,7 @@ import { MonthComputerWork } from "../entities/month-computer-work.entity";
 import { PeriodComputerWork } from "../entities/period-computer-work.entity";
 import { YearComputerWork } from "../entities/year-computer-work.entity";
 import { IPaginationOptions, IPaginationResult } from "./common/pagination-options";
+import { ISortingOptions } from "./common/sorting-options";
 
 export class StatisticsHoursMember {
     computer: Computer;
@@ -39,4 +40,16 @@ export class StatisticsPeriod {
 
 export class CreateStatisticsResult {
     status: "OK" | "ERROR";
+}
+
+export class ReadStatisticsHours {
+    dateStart: Date;
+    dateEnd: Date;
+    datesDay: Date[];
+    datesMonth: Date[];
+    datesYear: Date[];
+    operatingSystem: string;
+    computerIds: number[];
+    pagination: IPaginationOptions;
+    sorting: ISortingOptions;
 }

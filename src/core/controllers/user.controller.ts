@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Delete, Param, Body, Put, NotFoundException, BadRequestException, HttpStatus, HttpCode, UseGuards, Query } from '@nestjs/common';
 import { User } from '../entities/user.entity';
 import { UserService } from '../services/user.service';
-import { CreateUserDto, UpdateUserDto, ReadAllUserDto, ReadUserDto, ReadAllUserWithRolesDto } from '../dto/user.dto';
+import { CreateUserDto, UpdateUserDto, ReadAllUserDto, ReadUserDto, ReadAllUserWithRolesDto, VerifyUserDto } from '../dto/user.dto';
 import { RoleService } from '../services/role.service';
 import { AuthGuard } from '@nestjs/passport';
 import { HasRoles } from 'src/auth/decorators/has-roles.decorator';
@@ -28,6 +28,12 @@ export class UserController {
       sorting,
       filter,
     });
+  }
+
+  @Get('/verify')
+  @HttpCode(HttpStatus.OK)
+  verifyAction(@Query() userOptions: VerifyUserDto): Promise<boolean> {
+    return this.userService.verifyPassword(userOptions);
   }
 
   @Get("/getManyWithRoles")
@@ -58,8 +64,6 @@ export class UserController {
   @Post()
   @HttpCode(HttpStatus.OK)
   async createAction(@Body() user: CreateUserDto): Promise<User>{
-    console.log("Create");
-    console.log(user);
     return this.userService.create(user);
   }
 

@@ -112,7 +112,7 @@ export class StatisticsController {
             nextMonth = getMonthNext(nextMonth);
         }
 
-        if(dateEnd.getTime() === dateEndCopy.getTime()) {
+        if(datesMonth.length !== 0 && dateEnd.getTime() === dateEndCopy.getTime()) {
             const lastMonth = datesMonth[datesMonth.length - 1];
             if(getMonthEnd(lastMonth).getTime() !== dateEnd.getTime()) {
                 let currentDay = datesMonth.pop();

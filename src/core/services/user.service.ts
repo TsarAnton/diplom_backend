@@ -5,9 +5,10 @@ import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { IUserOptions, IUserWithRolesOptions, UserPaginationResult } from '../types/user.options';
 import { RoleService } from './role.service';
-import { CreateUserDto, UpdateUserDto, ReadUserDto } from '../dto/user.dto';
+import { CreateUserDto, UpdateUserDto, ReadUserDto, VerifyUserDto } from '../dto/user.dto';
 import { UserRole } from '../entities/user-role.entity';
 import { Role } from '../entities/role.entity';
+import * as argon2 from 'argon2';
 
 @Injectable()
 export class UserService  {
@@ -39,7 +40,8 @@ export class UserService  {
 				rolesEntities.push(existingRole);
       		}
     	}
-        const { roles, ...user } = createUserDto;
+        let { roles, ...user } = createUserDto;
+		user.password = await argon2.hash(user.password);
         const createdUser = await this.userRepository.save(user);
 		createdUser.roles = rolesEntities;
 		await this.userRepository.createQueryBuilder()
@@ -61,7 +63,7 @@ export class UserService  {
 		const queryBuilder = this.userRepository.createQueryBuilder("user");
 
 		 queryBuilder
-		 	.select(['user.id', 'user.login', 'user.password']);
+		 	.select(['user.id', 'user.login']);
 		// 	.from(User, "user");
 
 		if (options.filter) {
@@ -162,8 +164,9 @@ export class UserService  {
         		}
       		}
 		}
-        const {addedRoles, deletedRoles , ...user } = updateUserDto;
+        let {addedRoles, deletedRoles , ...user } = updateUserDto;
 
+		user.password = await argon2.hash(user.password);
 		await this.userRepository.update(id, user);
 		const updatedUser = await this.readById(id);
 
@@ -212,6 +215,14 @@ export class UserService  {
 		await this.userRepository.softDelete(id);
 	}
 
+	public async verifyPassword(userDto: VerifyUserDto): Promise<boolean> {
+		const existingUser = await this.readOne({ login: userDto.login });
+		if(!existingUser) {
+			throw new NotFoundException(`User with login=${userDto.login} does not exist`);
+		}
+		return await argon2.verify(existingUser.password, userDto.password);
+	}
+
 	public async readUserRoles(
 		id: number,
 	): Promise<Role[]> {
@@ -233,7 +244,7 @@ export class UserService  {
 		const queryBuilder = this.userRepository.createQueryBuilder("user");
 
 		queryBuilder
-			.select(['user.id', 'user.login', 'user.password'])
+			.select(['user.id', 'user.login'])
 
 		if (options.filter) {
 			if (options.filter.login) {

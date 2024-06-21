@@ -14,6 +14,18 @@ import { Type } from 'class-transformer';
 import { SortingDto } from './common/sorting.dto';
 import { PaginationDto } from './common/pagination.dto';
 
+export class VerifyUserDto {
+	@IsNotEmpty()
+	@MaxLength(50)
+	@IsString()
+    login: string;
+
+    @IsNotEmpty()
+	@MaxLength(12)
+	@IsString()
+    password: string;
+}
+
 export class CreateUserDto {
     @IsNotEmpty()
 	@MaxLength(50)

@@ -7,9 +7,9 @@ import { RolesGuard } from 'src/auth/services/roles.guard';
 import { AuthGuard } from '@nestjs/passport';
 import { ComputerPaginationResult } from '../types/computer.options';
 
-@HasRoles("admin")
-@UseGuards(RolesGuard)
-@UseGuards(AuthGuard("jwt"))
+// @HasRoles("admin")
+// @UseGuards(RolesGuard)
+// @UseGuards(AuthGuard("jwt"))
 @Controller('computers')
 export class ComputerController {
   constructor(
@@ -26,6 +26,12 @@ export class ComputerController {
       sorting,
       filter,
     });
+  }
+
+  @Get('/audinces')
+  @HttpCode(HttpStatus.OK)
+  getAllAudincesMethod(): Promise<string[]> {
+    return this.computerService.readAllAudinces();
   }
 
   @Get('/getOne')

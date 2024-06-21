@@ -117,6 +117,18 @@ export class ComputerService  {
 		return this.readById(id);
 	}
 
+	public async readAllAudinces(): Promise<string[]> {
+		const queryBuilder = this.computerRepository.createQueryBuilder("computer");
+
+		const audinces = await queryBuilder
+			.select('computer.audince')
+			.distinct(true)
+			.where('computer.audince IS NOT NULL')
+			.getRawMany();
+
+		return audinces.map(el => el.computer_audince);
+	}
+
 	public async delete(
         id: number,
     ): Promise<void> {

@@ -36,7 +36,6 @@ export class MonthComputerWorkService  {
 
 		queryBuilder
 			.select(['monthComputerWork.id', 'monthComputerWork.date', 'monthComputerWork.operatingSystem'])
-			//.from(MonthComputerWork, 'monthComputerWork')
             .leftJoin('monthComputerWork.computer', 'computer')
             .addSelect([
                 'computer.id',

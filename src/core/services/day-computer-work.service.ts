@@ -178,8 +178,8 @@ export class DayComputerWorkService  {
 			.select(['computer.id', 'computer.name', 'computer.macAddress', 'computer.ipAddress', 'computer.audince']);
 
 			if(options.datesDay.length !== 0) {
-				queryBuilder.leftJoin('computer.daysComputerWork', 'daysComputerWork', 'daysComputerWork.date IN (:...dates1)', {
-					dates1: options.datesDay,
+				queryBuilder.leftJoin('computer.daysComputerWork', 'daysComputerWork', 'daysComputerWork.date IN (:...dates)', {
+					dates: options.datesDay,
 				})
 				.addSelect(['daysComputerWork.hours', 'daysComputerWork.date']);
 			}
@@ -217,8 +217,6 @@ export class DayComputerWorkService  {
 
 		const entities = await queryBuilder.getMany();
 		const entitiesCount = await queryBuilder.getCount();
-
-		console.log(options);
 
 		const computersArray = entities.map(function(el) {
 			let computer = new Computer;

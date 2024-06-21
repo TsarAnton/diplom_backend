@@ -232,9 +232,8 @@ export class UserService  {
 
 		const queryBuilder = this.userRepository.createQueryBuilder("user");
 
-		 queryBuilder
-		 	.select(['user.id', 'user.login', 'user.password']);
-		// 	.from(User, "user");
+		queryBuilder
+			.select(['user.id', 'user.login', 'user.password'])
 
 		if (options.filter) {
 			if (options.filter.login) {
@@ -249,7 +248,7 @@ export class UserService  {
 					});
 				} else {
 					queryBuilder.andWhere('user.id IN (:...ids)', {
-						ids: options.filter.ids, //options.filter.computers.map(id => Number(id)),
+						ids: options.filter.ids,
 					});
 				}
 			}

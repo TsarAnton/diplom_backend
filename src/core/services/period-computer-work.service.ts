@@ -40,7 +40,6 @@ export class PeriodComputerWorkService  {
 
 		queryBuilder
 			.select(['periodComputerWork.id', 'periodComputerWork.dateStart', 'periodComputerWork.dateEnd', 'periodComputerWork.loginId', 'periodComputerWork.operatingSystem'])
-			//.from(PeriodComputerWork, 'periodComputerWork')
             .leftJoin('periodComputerWork.computer', 'computer')
             .addSelect([
                 'computer.id',
@@ -158,7 +157,7 @@ export class PeriodComputerWorkService  {
 		} else {
 			await this.periodComputerWorkRepository.update(id, { ...properties });
 		}
-		//await this.periodComputerWorkRepository.update(id, periodComputerWork);
+		
 		return this.readById(id);
 	}
 
@@ -188,7 +187,6 @@ export class PeriodComputerWorkService  {
 			])
 			.where('periodsComputerWork.dateEnd IS NOT NULL')
 
-		console.log(readStatisticsDto);
         if (readStatisticsDto.operatingSystem) {
 			queryBuilder.andWhere('periodsComputerWork.operatingSystem LIKE :operatingSystem', {
 				operatingSystem: "%" + readStatisticsDto.operatingSystem + "%",
@@ -218,7 +216,7 @@ export class PeriodComputerWorkService  {
 
 		const dateStart = new Date(readStatisticsDto.dateStart);
 		const dateEnd = new Date(readStatisticsDto.dateEnd);
-
+		
 		const arrayPeriod = entities.map(function(el) {
 			const computer = new Computer;
 			computer.id = el.id;
@@ -236,10 +234,11 @@ export class PeriodComputerWorkService  {
 						dateEnd: realDateEnd,
 						hours: Number(getDateDiffHours(realDateStart, realDateEnd).toFixed(4)),
 						operatingSystem: el1.operatingSystem,
-					}
+					};
 				}),
-			}
+			};
 		});
+
 		if(readStatisticsDto.pagination) {
 			const pageCount = Math.floor(entitiesCount / readStatisticsDto.pagination.size) - ((entitiesCount % +readStatisticsDto.pagination.size === 0) ? 1: 0);
 			return {
@@ -253,6 +252,7 @@ export class PeriodComputerWorkService  {
 				computers: arrayPeriod,
 			};
 		}
+
 		return {
 			dateStart: readStatisticsDto.dateStart,
 			dateEnd: readStatisticsDto.dateEnd,

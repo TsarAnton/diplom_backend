@@ -230,7 +230,7 @@ export class DayComputerWorkService  {
 			const yearHours = el.yearsComputerWork ? el.yearsComputerWork.reduce((acc, el1) => acc + Number(el1.hours), 0) : 0;
  			return {
 				computer: computer,
-				hours: dayHours + monthHours + yearHours,
+				hours: Number((dayHours + monthHours + yearHours).toFixed(4)),
 			}
 		});
 

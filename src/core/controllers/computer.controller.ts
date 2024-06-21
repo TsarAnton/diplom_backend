@@ -7,9 +7,9 @@ import { RolesGuard } from 'src/auth/services/roles.guard';
 import { AuthGuard } from '@nestjs/passport';
 import { ComputerPaginationResult } from '../types/computer.options';
 
-// @HasRoles("admin")
-// @UseGuards(RolesGuard)
-// @UseGuards(AuthGuard("jwt"))
+@HasRoles("admin")
+@UseGuards(RolesGuard)
+@UseGuards(AuthGuard("jwt"))
 @Controller('computers')
 export class ComputerController {
   constructor(

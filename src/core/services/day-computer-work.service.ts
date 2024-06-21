@@ -181,6 +181,7 @@ export class DayComputerWorkService  {
 				queryBuilder.leftJoin('computer.daysComputerWork', 'daysComputerWork', 'daysComputerWork.date IN (:...dates)', {
 					dates: options.datesDay,
 				})
+				.andWhere("(daysComputerWork.hours <> 0" + ((options.datesYear.length === 0 && options.datesMonth.length === 0) ? ")" : ""))
 				.addSelect(['daysComputerWork.hours', 'daysComputerWork.date']);
 			}
 			if(options.datesMonth.length !== 0) {
@@ -188,12 +189,22 @@ export class DayComputerWorkService  {
 					dates2: options.datesMonth,
 				})
 				.addSelect(['monthsComputerWork.hours', 'monthsComputerWork.date']);
+				if(options.datesDay.length === 0) {
+					queryBuilder.andWhere("(monthsComputerWork.hours <> 0" + (options.datesYear.length === 0 ? ")" : ""));
+				} else {
+					queryBuilder.orWhere("monthsComputerWork.hours <> 0" + (options.datesYear.length === 0 ? ")" : ""));
+				}
 			}
 			if(options.datesYear.length !== 0) {
 				queryBuilder.leftJoin('computer.yearsComputerWork', 'yearsComputerWork', 'yearsComputerWork.date IN (:...dates3)', {
 					dates3: options.datesYear,
 				})
 				.addSelect(['yearsComputerWork.hours', 'yearsComputerWork.date']);
+				if(options.datesMonth.length === 0 && options.datesDay.length === 0) {
+					queryBuilder.andWhere("(yearsComputerWork.hours <> 0)");
+				} else {
+					queryBuilder.orWhere("yearsComputerWork.hours <> 0)");
+				}
 			}
 
             if (options.operatingSystem) {
